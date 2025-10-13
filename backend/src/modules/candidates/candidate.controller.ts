@@ -125,9 +125,16 @@ export class CandidateController {
     description: 'Candidato atualizado',
     type: UpdateCandidateDto,
   })
-  async update(@Param('id') id: string, @Body() dto: UpdateCandidateDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateCandidateDto,
+    @Req() req: Request & { user: { organizationId: string } }
+  ) {
     this.logger.log(`PUT /candidates/${id} - payload: ${JSON.stringify(dto)}`);
-    return this.candidateService.update(id, dto);
+    return this.candidateService.update(id, {
+      ...dto,
+      organizationId: req.user.organizationId,
+    });
   }
 
   @Delete(':id')
