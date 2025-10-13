@@ -75,35 +75,52 @@ export class CandidateService {
 
   async findById(id: string) {
     this.logger.log(`Buscando candidato por ID: ${id}`);
-    return this.candidateRepository.findOne({ where: { id } });
+    const candidate = await this.candidateRepository.findOne({ where: { id } });
+    if (!candidate) {
+      throw new NotFoundException('Candidato não encontrado');
+    }
+    return candidate;
   }
 
   async update(id: string, data: UpdateCandidateDto) {
     this.logger.log(`Atualizando candidato ${id}: ${JSON.stringify(data)}`);
 
-    if (data.jobId)
-      await assertEntityExists(this.jobService, data.jobId, 'Job');
+    try {
+      if (data.jobId)
+        await assertEntityExists(this.jobService, data.jobId, 'Job');
 
-    // Buscar candidato atual
-    const current = await this.candidateRepository.findOne({ where: { id } });
-
-    // Só verifica duplicidade se email ou jobId forem alterados
-    const emailToCheck = data.email ?? current?.email;
-    const jobIdToCheck = data.jobId ?? current?.jobId;
-
-    if ((data.email || data.jobId) && emailToCheck && jobIdToCheck) {
-      const existing = await this.candidateRepository.findOne({
-        where: { email: emailToCheck, jobId: jobIdToCheck },
-      });
-      if (existing && existing.id !== id) {
-        throw new ConflictException(
-          'Este candidato já está inscrito nesta vaga',
-        );
+      const current = await this.candidateRepository.findOne({ where: { id } });
+      if (!current) {
+        this.logger.error(`Candidato não encontrado: ${id}`);
+        throw new NotFoundException('Candidato não encontrado');
       }
-    }
 
-    await this.candidateRepository.update(id, data);
-    return this.findById(id);
+      // Filtra apenas os campos válidos da entidade
+      const updateData: Partial<Candidate> = {
+        name: data.name,
+        email: data.email,
+        status: data.status,
+        jobId: data.jobId,
+        organizationId: data.organizationId,
+      };
+
+      // Remove campos undefined
+      Object.keys(updateData).forEach(
+        (key) =>
+          updateData[key as keyof Candidate] === undefined &&
+          delete updateData[key as keyof Candidate],
+      );
+
+      await this.candidateRepository.update(id, updateData);
+      return this.findById(id);
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(
+        `Erro ao atualizar candidato ${id}: ${err.message}`,
+        err.stack,
+      );
+      throw error;
+    }
   }
 
   async remove(id: string) {

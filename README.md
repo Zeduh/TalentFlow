@@ -316,6 +316,28 @@ Endpoint `/health` retorna:
 }
 ```
 
+## 📨 Testando Webhook de Calendário
+
+O endpoint `/api/v1/webhooks/calendar` aceita eventos simulados de calendário para atualizar o status de entrevistas.
+
+### Exemplo de payload
+
+```json
+{
+  "eventId": "evt_123",
+  "type": "created",
+  "interviewId": "uuid-da-entrevista",
+  "candidateId": "uuid-do-candidato",
+  "scheduledAt": "2025-10-12T10:00:00Z",
+  "idempotencyKey": "idem-key-abc123",
+  "signature": "webhook-secret-key-change-in-production"
+}
+```
+
+- O campo `signature` deve ser igual ao valor de `WEBHOOK_SECRET` do seu `.env`.
+- O campo `idempotencyKey` garante que o evento não será processado mais de uma vez.
+- Consulte o Swagger em `/docs` para exemplos e schemas completos.
+
 ## 🛠️ Scripts Disponíveis
 
 ### Backend
@@ -342,6 +364,24 @@ npm run start          # Iniciar build de produção
 npm run lint           # Linter
 npm run test           # Executar testes
 ```
+
+## ⚠️ Limitações e Próximos Passos
+
+### Limitações
+- Cobertura de testes mínima (1 unitário + 1 integração).
+- Integração de calendário é mock, não real.
+- Não há testes automatizados para todos endpoints e cenários de erro.
+- Não há autenticação de refresh token implementada.
+- Rate limiting apenas planejado, não implementado.
+- Não há integração real com Google/Microsoft Calendar.
+
+### Próximos Passos
+- Ampliar cobertura de testes (unitários e integração).
+- Implementar integração real com calendário externo.
+- Adicionar testes para cenários de erro e edge cases.
+- Implementar rate limiting.
+- Melhorar UX do frontend (loading, feedback, validação).
+- Adicionar feature flags e ETag/If-None-Match.
 
 ## 📄 Licença
 
