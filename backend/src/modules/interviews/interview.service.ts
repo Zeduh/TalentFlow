@@ -90,7 +90,11 @@ export class InterviewService {
 
   async findById(id: string) {
     this.logger.log(`Buscando entrevista por id: ${id}`);
-    return this.interviewRepository.findOne({ where: { id } });
+    const interview = await this.interviewRepository.findOne({ where: { id } });
+    if (!interview) {
+      throw new NotFoundException('Entrevista não encontrada');
+    }
+    return interview;
   }
 
   async update(id: string, data: UpdateInterviewDto) {
