@@ -343,6 +343,24 @@ npm run lint           # Linter
 npm run test           # Executar testes
 ```
 
+## ⚠️ Limitações e Próximos Passos
+
+### Limitações
+- Cobertura de testes mínima (1 unitário + 1 integração).
+- Integração de calendário é mock, não real.
+- Não há testes automatizados para todos endpoints e cenários de erro.
+- Não há autenticação de refresh token implementada.
+- Rate limiting apenas planejado, não implementado.
+- Não há integração real com Google/Microsoft Calendar.
+
+### Próximos Passos
+- Ampliar cobertura de testes (unitários e integração).
+- Implementar integração real com calendário externo.
+- Adicionar testes para cenários de erro e edge cases.
+- Implementar rate limiting.
+- Melhorar UX do frontend (loading, feedback, validação).
+- Adicionar feature flags e ETag/If-None-Match.
+
 ## 📄 Licença
 
 Este projeto está sob a licença GNU General Public License v3.0. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
