@@ -9,9 +9,10 @@ export class WebhooksController {
   constructor(private readonly webhooksService: WebhooksService) {}
 
   @Post('calendar')
-  @ApiOperation({ summary: 'Recebe eventos de calendário para entrevistas (webhook)' })
+  @ApiOperation({
+    summary: 'Recebe eventos de calendário para entrevistas (webhook)',
+  })
   async handleCalendarWebhook(@Body() dto: CalendarWebhookDto) {
-    // Lógica será implementada na próxima etapa
     return this.webhooksService.handleCalendarWebhook(dto);
   }
 }
