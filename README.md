@@ -316,6 +316,28 @@ Endpoint `/health` retorna:
 }
 ```
 
+## 📨 Testando Webhook de Calendário
+
+O endpoint `/api/v1/webhooks/calendar` aceita eventos simulados de calendário para atualizar o status de entrevistas.
+
+### Exemplo de payload
+
+```json
+{
+  "eventId": "evt_123",
+  "type": "created",
+  "interviewId": "uuid-da-entrevista",
+  "candidateId": "uuid-do-candidato",
+  "scheduledAt": "2025-10-12T10:00:00Z",
+  "idempotencyKey": "idem-key-abc123",
+  "signature": "webhook-secret-key-change-in-production"
+}
+```
+
+- O campo `signature` deve ser igual ao valor de `WEBHOOK_SECRET` do seu `.env`.
+- O campo `idempotencyKey` garante que o evento não será processado mais de uma vez.
+- Consulte o Swagger em `/docs` para exemplos e schemas completos.
+
 ## 🛠️ Scripts Disponíveis
 
 ### Backend
