@@ -16,6 +16,7 @@ describe('AppController (e2e)', () => {
   });
 
   it('GET /health should return status ok', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const res = await request(app.getHttpServer()).get('/health');
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('status', 'ok');
