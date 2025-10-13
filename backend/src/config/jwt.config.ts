@@ -8,7 +8,7 @@ export default registerAs(
     secret: process.env.JWT_SECRET,
     signOptions: {
       expiresIn: process.env.JWT_EXPIRES_IN
-        ? process.env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn']
+        ? (process.env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'])
         : '7d',
     },
   }),

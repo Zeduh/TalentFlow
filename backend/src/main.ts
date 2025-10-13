@@ -1,11 +1,14 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WinstonModule } from 'nest-winston';
 import { AppModule } from './app.module';
 import { loggerConfig } from './config/logger.config';
 import * as express from 'express';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor';
+import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -14,22 +17,25 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
+  // Global exception filter
+  app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Global request ID interceptor
+  app.useGlobalInterceptors(new RequestIdInterceptor());
+
+  // Global metrics interceptor
+  app.useGlobalInterceptors(new MetricsInterceptor());
+
   // CORS
   app.enableCors({
     origin: configService.get<string>('FRONTEND_URL', 'http://localhost:3000'),
     credentials: true,
   });
 
-  // Global prefix com exclusão do health check
+  // Global prefix com exclusão do health check e versioning
   const apiPrefix = configService.get<string>('app.apiPrefix', 'api/v1');
   app.setGlobalPrefix(apiPrefix, {
     exclude: ['health'],
-  });
-
-  // Versioning
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
   });
 
   // Global pipes
