@@ -52,7 +52,6 @@ export class CandidateService {
 
     let query = this.candidateRepository
       .createQueryBuilder('candidate')
-      .leftJoinAndSelect('candidate.job', 'job') // EAGER LOADING DA VAGA
       .where(where);
 
     if (filter.cursor) {

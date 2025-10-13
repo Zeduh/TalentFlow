@@ -38,7 +38,6 @@ export class JobService {
 
     let query = this.jobRepository
       .createQueryBuilder('job')
-      .leftJoinAndSelect('job.organization', 'organization') // EAGER LOADING DA ORGANIZAÇÃO
       .where(where);
 
     if (filter.cursor) {
