@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InterviewService } from '../interviews/interview.service';
 import { CalendarWebhookDto, CalendarWebhookType } from './dto/calendar-webhook.dto';
@@ -6,6 +6,9 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class WebhooksService {
+  private readonly logger = new Logger(WebhooksService.name);
+  private static webhookCount = 0; // métrica simples
+
   private redis: Redis;
 
   constructor(
@@ -27,7 +30,18 @@ export class WebhooksService {
     const idemKey = `webhook:idempotency:${dto.idempotencyKey}`;
     const alreadyProcessed = await this.redis.get(idemKey);
     if (alreadyProcessed) {
-      return { idempotent: true };
+      this.logger.log(
+        JSON.stringify({
+          event: 'calendar_webhook_received',
+          interviewId: dto.interviewId,
+          type: dto.type,
+          idempotencyKey: dto.idempotencyKey,
+          processed: false,
+          timestamp: new Date().toISOString(),
+        }),
+      );
+      WebhooksService.webhookCount++;
+      return { idempotent: true, webhookCount: WebhooksService.webhookCount };
     }
 
     // Atualiza status da entrevista conforme tipo do evento
@@ -53,6 +67,18 @@ export class WebhooksService {
 
     await this.redis.set(idemKey, '1', 'EX', 60 * 60 * 24);
 
-    return { processed: true, result };
+    this.logger.log(
+      JSON.stringify({
+        event: 'calendar_webhook_processed',
+        interviewId: dto.interviewId,
+        type: dto.type,
+        idempotencyKey: dto.idempotencyKey,
+        processed: true,
+        timestamp: new Date().toISOString(),
+      }),
+    );
+    WebhooksService.webhookCount++;
+
+    return { processed: true, result, webhookCount: WebhooksService.webhookCount };
   }
 }
