@@ -2,7 +2,7 @@ import {
   Injectable,
   Logger,
   ConflictException,
-  NotFoundException
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Candidate } from './candidate.entity';
@@ -106,15 +106,18 @@ export class CandidateService {
 
       // Remove campos undefined
       Object.keys(updateData).forEach(
-        (key) => updateData[key as keyof Candidate] === undefined && delete updateData[key as keyof Candidate]
+        (key) =>
+          updateData[key as keyof Candidate] === undefined &&
+          delete updateData[key as keyof Candidate],
       );
 
       await this.candidateRepository.update(id, updateData);
       return this.findById(id);
     } catch (error) {
+      const err = error as Error;
       this.logger.error(
-        `Erro ao atualizar candidato ${id}: ${error.message}`,
-        error.stack,
+        `Erro ao atualizar candidato ${id}: ${err.message}`,
+        err.stack,
       );
       throw error;
     }
