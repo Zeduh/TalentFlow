@@ -1,13 +1,17 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { CalendarWebhookDto } from './dto/calendar-webhook.dto';
+import { InterviewService } from '../interviews/interview.service';
+import { CalendarWebhookDto, CalendarWebhookType } from './dto/calendar-webhook.dto';
 import Redis from 'ioredis';
 
 @Injectable()
 export class WebhooksService {
   private redis: Redis;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly interviewService: InterviewService,
+  ) {
     this.redis = new Redis({
       host: configService.get('REDIS_HOST'),
       port: Number(configService.get('REDIS_PORT')),
@@ -23,16 +27,32 @@ export class WebhooksService {
     const idemKey = `webhook:idempotency:${dto.idempotencyKey}`;
     const alreadyProcessed = await this.redis.get(idemKey);
     if (alreadyProcessed) {
-      // Idempotente: já processado
       return { idempotent: true };
     }
 
-    // Processamento do webhook (a implementar)
-    // ...
+    // Atualiza status da entrevista conforme tipo do evento
+    let result;
+    switch (dto.type) {
+      case CalendarWebhookType.CREATED:
+      case CalendarWebhookType.UPDATED:
+        result = await this.interviewService.updateStatusFromWebhook(
+          dto.interviewId,
+          'interview_scheduled',
+          dto.scheduledAt,
+        );
+        break;
+      case CalendarWebhookType.CANCELLED:
+        result = await this.interviewService.updateStatusFromWebhook(
+          dto.interviewId,
+          'cancelled',
+        );
+        break;
+      default:
+        throw new NotFoundException('Tipo de evento desconhecido');
+    }
 
-    // Salva chave de idempotência por 24h
     await this.redis.set(idemKey, '1', 'EX', 60 * 60 * 24);
 
-    return { processed: true };
+    return { processed: true, result };
   }
 }

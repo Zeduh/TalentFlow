@@ -150,4 +150,29 @@ export class InterviewService {
 
     return this.interviewRepository.delete(id);
   }
+
+  async updateStatusFromWebhook(
+    interviewId: string,
+    status: string,
+    scheduledAt?: string,
+  ) {
+    const interview = await this.interviewRepository.findOne({ where: { id: interviewId } });
+    if (!interview) {
+      throw new NotFoundException('Entrevista não encontrada');
+    }
+
+    // Atualiza status e data se necessário
+    interview.status = status as any;
+    if (scheduledAt) {
+      interview.scheduledAt = new Date(scheduledAt);
+    }
+    await this.interviewRepository.save(interview);
+
+    this.logger.log(
+      `Webhook: entrevista ${interviewId} atualizada para status ${status}` +
+      (scheduledAt ? `, nova data: ${scheduledAt}` : ''),
+    );
+
+    return interview;
+  }
 }
