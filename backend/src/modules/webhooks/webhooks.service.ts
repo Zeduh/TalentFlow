@@ -1,7 +1,15 @@
-import { Injectable, UnauthorizedException, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InterviewService } from '../interviews/interview.service';
-import { CalendarWebhookDto, CalendarWebhookType } from './dto/calendar-webhook.dto';
+import {
+  CalendarWebhookDto,
+  CalendarWebhookType,
+} from './dto/calendar-webhook.dto';
 import Redis from 'ioredis';
 
 @Injectable()
@@ -21,7 +29,12 @@ export class WebhooksService {
     });
   }
 
-  async handleCalendarWebhook(dto: CalendarWebhookDto): Promise<any> {
+  async handleCalendarWebhook(
+    dto: CalendarWebhookDto,
+  ): Promise<
+    | { processed: true; result: any; webhookCount: number }
+    | { idempotent: true; webhookCount: number }
+  > {
     const secret = this.configService.get<string>('WEBHOOK_SECRET');
     if (dto.signature !== secret) {
       throw new UnauthorizedException('Assinatura do webhook inválida');
@@ -79,6 +92,10 @@ export class WebhooksService {
     );
     WebhooksService.webhookCount++;
 
-    return { processed: true, result, webhookCount: WebhooksService.webhookCount };
+    return {
+      processed: true,
+      result,
+      webhookCount: WebhooksService.webhookCount,
+    };
   }
 }

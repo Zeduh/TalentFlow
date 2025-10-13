@@ -12,7 +12,12 @@ export class WebhooksController {
   @ApiOperation({
     summary: 'Recebe eventos de calendário para entrevistas (webhook)',
   })
-  async handleCalendarWebhook(@Body() dto: CalendarWebhookDto) {
+  async handleCalendarWebhook(
+    dto: CalendarWebhookDto,
+  ): Promise<
+    | { processed: true; result: any; webhookCount: number }
+    | { idempotent: true; webhookCount: number }
+  > {
     return this.webhooksService.handleCalendarWebhook(dto);
   }
 }
