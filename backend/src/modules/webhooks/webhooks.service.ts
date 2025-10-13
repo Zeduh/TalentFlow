@@ -64,7 +64,7 @@ export class WebhooksService {
       case CalendarWebhookType.UPDATED:
         result = await this.interviewService.updateStatusFromWebhook(
           dto.interviewId,
-          'interview_scheduled',
+          'scheduled',
           dto.scheduledAt,
         );
         break;
