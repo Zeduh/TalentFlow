@@ -1,4 +1,10 @@
-import { IsString, IsUUID, IsEnum, IsOptional, IsDateString } from 'class-validator';
+import {
+  IsString,
+  IsUUID,
+  IsEnum,
+  IsOptional,
+  IsDateString,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum CalendarWebhookType {
@@ -8,7 +14,10 @@ export enum CalendarWebhookType {
 }
 
 export class CalendarWebhookDto {
-  @ApiProperty({ example: 'evt_123', description: 'ID do evento no calendário' })
+  @ApiProperty({
+    example: 'evt_123',
+    description: 'ID do evento no calendário',
+  })
   @IsString()
   eventId: string;
 
@@ -16,7 +25,10 @@ export class CalendarWebhookDto {
   @IsEnum(CalendarWebhookType)
   type: CalendarWebhookType;
 
-  @ApiProperty({ example: 'uuid-da-entrevista', description: 'UUID da entrevista' })
+  @ApiProperty({
+    example: 'uuid-da-entrevista',
+    description: 'UUID da entrevista',
+  })
   @IsUUID()
   interviewId: string;
 
@@ -30,11 +42,17 @@ export class CalendarWebhookDto {
   @IsDateString()
   scheduledAt?: string;
 
-  @ApiProperty({ example: 'idem-key-abc123', description: 'Chave de idempotência' })
+  @ApiProperty({
+    example: 'idem-key-abc123',
+    description: 'Chave de idempotência',
+  })
   @IsString()
   idempotencyKey: string;
 
-  @ApiProperty({ example: 'assinatura-mock', description: 'Assinatura do webhook' })
+  @ApiProperty({
+    example: 'assinatura-mock',
+    description: 'Assinatura do webhook',
+  })
   @IsString()
   signature: string;
 }

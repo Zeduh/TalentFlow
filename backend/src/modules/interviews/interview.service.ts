@@ -157,7 +157,9 @@ export class InterviewService {
     status: string,
     scheduledAt?: string,
   ) {
-    const interview = await this.interviewRepository.findOne({ where: { id: interviewId } });
+    const interview = await this.interviewRepository.findOne({
+      where: { id: interviewId },
+    });
     if (!interview) {
       throw new NotFoundException('Entrevista não encontrada');
     }
@@ -171,7 +173,7 @@ export class InterviewService {
 
     this.logger.log(
       `Webhook: entrevista ${interviewId} atualizada para status ${status}` +
-      (scheduledAt ? `, nova data: ${scheduledAt}` : ''),
+        (scheduledAt ? `, nova data: ${scheduledAt}` : ''),
     );
 
     return interview;

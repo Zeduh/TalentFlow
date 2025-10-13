@@ -36,9 +36,7 @@ export class JobService {
     };
     if (filter.status) where.status = filter.status;
 
-    let query = this.jobRepository
-      .createQueryBuilder('job')
-      .where(where);
+    let query = this.jobRepository.createQueryBuilder('job').where(where);
 
     if (filter.cursor) {
       query = query.andWhere('job.id > :cursor', { cursor: filter.cursor });
