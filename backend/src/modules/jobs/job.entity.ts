@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 
 export enum JobStatus {
   OPEN = 'open',
@@ -15,8 +15,10 @@ export class Job {
   title: string;
 
   @Column({ type: 'enum', enum: JobStatus, default: JobStatus.OPEN })
+  @Index()
   status: JobStatus;
 
   @Column()
+  @Index()
   organizationId: string; // Multi-tenant
 }

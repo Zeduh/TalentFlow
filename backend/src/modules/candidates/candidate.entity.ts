@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { Job } from '../jobs/job.entity';
+import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
 
 export enum CandidateStatus {
   APPLIED = 'applied',
@@ -16,9 +15,7 @@ export class Candidate {
   id: string;
 
   @Column()
-  name: string;
-
-  @Column()
+  @Index()
   email: string;
 
   @Column({
@@ -26,14 +23,13 @@ export class Candidate {
     enum: CandidateStatus,
     default: CandidateStatus.APPLIED,
   })
+  @Index()
   status: CandidateStatus;
-
-  @ManyToOne(() => Job)
-  job: Job;
 
   @Column()
   jobId: string;
 
   @Column()
+  @Index()
   organizationId: string; // Multi-tenant
 }
