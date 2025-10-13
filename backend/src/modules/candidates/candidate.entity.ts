@@ -15,6 +15,9 @@ export class Candidate {
   id: string;
 
   @Column()
+  name: string;
+
+  @Column()
   @Index()
   email: string;
 
