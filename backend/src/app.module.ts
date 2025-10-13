@@ -10,6 +10,12 @@ import appConfig from './config/app.config';
 import { loggerConfig } from './config/logger.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { TenantModule } from './modules/tenants/tenant.module';
+import { UserModule } from './modules/users/user.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { JobModule } from './modules/jobs/job.module';
+import { CandidateModule } from './modules/candidates/candidate.module';
+import { InterviewModule } from './modules/interviews/interview.module';
 
 @Module({
   imports: [
@@ -38,7 +44,13 @@ import { AppService } from './app.service';
     // Health Check
     TerminusModule,
 
-    // Feature modules will be added here
+    // Application Modules
+    TenantModule,
+    UserModule,
+    AuthModule,
+    JobModule,
+    CandidateModule,
+    InterviewModule,
   ],
   controllers: [AppController],
   providers: [AppService],
