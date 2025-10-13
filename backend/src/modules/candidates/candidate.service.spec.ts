@@ -1,6 +1,7 @@
 import { CandidateService } from './candidate.service';
 import { Candidate } from './candidate.entity';
 import { Repository } from 'typeorm';
+import { JobService } from '../jobs/job.service';
 
 describe('CandidateService', () => {
   let service: CandidateService;
@@ -8,7 +9,8 @@ describe('CandidateService', () => {
 
   beforeEach(() => {
     repo = {} as any;
-    service = new CandidateService(repo, {} as any);
+    const jobServiceMock: Partial<JobService> = {};
+    service = new CandidateService(repo, jobServiceMock as JobService);
   });
 
   it('should be defined', () => {
