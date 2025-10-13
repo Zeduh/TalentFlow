@@ -68,7 +68,9 @@ export class InterviewService {
 
     let query = this.interviewRepository
       .createQueryBuilder('interview')
+      .leftJoinAndSelect('interview.candidate', 'candidate') // EAGER LOADING
       .where(where);
+
     if (filter.cursor) {
       query = query.andWhere('interview.id > :cursor', {
         cursor: filter.cursor,
