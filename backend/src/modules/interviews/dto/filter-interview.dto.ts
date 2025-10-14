@@ -1,4 +1,4 @@
-import { IsOptional, IsEnum, IsUUID } from 'class-validator';
+import { IsOptional, IsEnum, IsUUID, IsInt } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { InterviewStatus } from '../interview.entity';
 
@@ -13,10 +13,10 @@ export class FilterInterviewDto {
   @IsUUID()
   candidateId?: string;
 
-  @ApiPropertyOptional({ example: 'UUID do cursor valido' })
+  @ApiPropertyOptional({ example: 1, description: 'Cursor para paginação (sequenceId)' })
   @IsOptional()
-  @IsUUID()
-  cursor?: string;
+  @IsInt()
+  sequenceId?: number;
 
   @ApiPropertyOptional({ example: 10 })
   @IsOptional()
