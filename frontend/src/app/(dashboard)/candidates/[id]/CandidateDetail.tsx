@@ -5,7 +5,7 @@ import { useCandidateDetail } from "@/hooks/useCandidateDetail";
 import { useUpdateCandidate } from "@/hooks/useUpdateCandidate";
 import { CandidateStatusBadge } from "@/components/CandidateStatusBadge";
 import { CandidateTimeline } from "./CandidateTimeline";
-import { InterviewFormModal } from "@/app/interviews/InterviewFormModal";
+import { InterviewFormModal } from "@/app/(dashboard)/interviews/InterviewFormModal";
 import { InterviewStatusBadge } from "@/components/InterviewStatusBadge";
 import toast from "react-hot-toast";
 
