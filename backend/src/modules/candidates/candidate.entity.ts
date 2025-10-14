@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index, CreateDateColumn } from 'typeorm';
 
 export enum CandidateStatus {
   APPLIED = 'applied',
@@ -13,6 +13,9 @@ export enum CandidateStatus {
 export class Candidate {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ name: 'sequence_id', type: 'int', generated: 'increment', unique: true })
+  sequenceId: number; // For cursor-based pagination
 
   @Column()
   name: string;
@@ -35,4 +38,8 @@ export class Candidate {
   @Column()
   @Index()
   organizationId: string; // Multi-tenant
+
+  @CreateDateColumn()
+  @Index()
+  createdAt: Date;
 }

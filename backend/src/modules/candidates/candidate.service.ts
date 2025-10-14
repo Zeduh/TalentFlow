@@ -26,7 +26,8 @@ export class CandidateService {
   async create(data: CreateCandidateDto) {
     this.logger.log(`Criando candidato: ${JSON.stringify(data)}`);
 
-    await assertEntityExists(this.jobService, data.jobId, 'Job');
+    // Busca a vaga e pega o organizationId dela
+    const job = await this.jobService.findById(data.jobId);
 
     // Verificação de duplicidade: mesmo email e jobId
     const existing = await this.candidateRepository.findOne({
@@ -36,7 +37,11 @@ export class CandidateService {
       throw new ConflictException('Este candidato já está inscrito nesta vaga');
     }
 
-    const candidate = this.candidateRepository.create(data);
+    // Sempre usa o organizationId da vaga
+    const candidate = this.candidateRepository.create({
+      ...data,
+      organizationId: job.organizationId,
+    });
     return this.candidateRepository.save(candidate);
   }
 
@@ -44,32 +49,34 @@ export class CandidateService {
     this.logger.log(`Listando candidatos: ${JSON.stringify(filter)}`);
     const limit = filter.limit ?? 10;
 
-    const where: FindOptionsWhere<Candidate> = {
-      organizationId,
-    };
+    const where: FindOptionsWhere<Candidate> = { organizationId };
     if (filter.status) where.status = filter.status;
     if (filter.jobId) where.jobId = filter.jobId;
 
-    let query = this.candidateRepository
-      .createQueryBuilder('candidate')
-      .where(where);
+    let query = this.candidateRepository.createQueryBuilder('candidate').where(where);
 
-    if (filter.cursor) {
-      query = query.andWhere('candidate.id > :cursor', {
-        cursor: filter.cursor,
+    if (filter.sequenceId) {
+      query = query.andWhere('candidate.sequenceId > :cursor', {
+        cursor: filter.sequenceId,
       });
     }
 
-    query = query.orderBy('candidate.id', 'ASC').limit(limit);
+    query = query.orderBy('candidate.sequenceId', 'ASC').limit(limit + 1);
 
     const candidates = await query.getMany();
-    const nextCursor =
-      candidates.length > 0 ? candidates[candidates.length - 1].id : null;
+    let nextCursor: number | null = null;
+    let hasMore = false;
+
+    if (candidates.length > limit) {
+      hasMore = true;
+      nextCursor = candidates[limit - 1].sequenceId;
+      candidates.splice(limit);
+    }
 
     return {
       data: candidates,
       nextCursor,
-      hasMore: candidates.length === limit,
+      hasMore,
     };
   }
 
@@ -86,8 +93,11 @@ export class CandidateService {
     this.logger.log(`Atualizando candidato ${id}: ${JSON.stringify(data)}`);
 
     try {
-      if (data.jobId)
-        await assertEntityExists(this.jobService, data.jobId, 'Job');
+      let organizationId: string | undefined;
+      if (data.jobId) {
+        const job = await this.jobService.findById(data.jobId);
+        organizationId = job.organizationId;
+      }
 
       const current = await this.candidateRepository.findOne({ where: { id } });
       if (!current) {
@@ -95,13 +105,13 @@ export class CandidateService {
         throw new NotFoundException('Candidato não encontrado');
       }
 
-      // Filtra apenas os campos válidos da entidade
+      // Atualiza organizationId se jobId mudou, senão mantém o atual
       const updateData: Partial<Candidate> = {
         name: data.name,
         email: data.email,
         status: data.status,
         jobId: data.jobId,
-        organizationId: data.organizationId,
+        organizationId: organizationId ?? current.organizationId,
       };
 
       // Remove campos undefined

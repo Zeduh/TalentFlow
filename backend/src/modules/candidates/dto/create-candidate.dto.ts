@@ -1,6 +1,6 @@
-import { IsString, IsEmail, IsEnum, IsUUID, MinLength } from 'class-validator';
-import { CandidateStatus } from '../candidate.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsString, MinLength, IsEmail, IsEnum, IsUUID } from 'class-validator';
+import { CandidateStatus } from '../candidate.entity';
 
 export class CreateCandidateDto {
   @ApiProperty({ example: 'João Silva' })
@@ -19,8 +19,4 @@ export class CreateCandidateDto {
   @ApiProperty({ example: 'uuid-da-vaga' })
   @IsUUID()
   jobId: string;
-
-  @ApiProperty({ example: 'uuid-da-organizacao' })
-  @IsUUID()
-  organizationId: string;
 }
