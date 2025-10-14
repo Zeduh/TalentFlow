@@ -1,11 +1,20 @@
 import Link from "next/link";
 import { Job } from "@/hooks/useJobs";
+import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import { JobFormModal } from "./JobFormModal";
+import { useDeleteJob } from "@/hooks/useDeleteJob";
 
 type Props = {
   job: Job;
 };
 
 export function JobCard({ job }: Props) {
+  const { user } = useAuth();
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const { mutate: deleteJob, isPending } = useDeleteJob();
+
   const getStatusConfig = (status: string) => {
     switch (status) {
       case "open":
@@ -41,7 +50,7 @@ export function JobCard({ job }: Props) {
         </div>
       </div>
       
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2 mt-4">
         <Link
           href={`/jobs/${job.id}`}
           className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors duration-200"
