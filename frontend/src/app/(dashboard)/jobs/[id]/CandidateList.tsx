@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCandidates, Candidate } from "@/hooks/useCandidates";
-import { CandidateFormModal } from "@/app/candidates/CandidateFormModal";
+import { CandidateFormModal } from "@/app/(dashboard)/candidates/CandidateFormModal";
 import { CandidateStatusBadge } from "@/components/CandidateStatusBadge";
 
 type Props = {
