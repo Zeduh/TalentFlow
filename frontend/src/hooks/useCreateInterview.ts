@@ -18,6 +18,7 @@ export function useCreateInterview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] }); // <-- ADICIONE ESTA LINHA
     },
   });
 }

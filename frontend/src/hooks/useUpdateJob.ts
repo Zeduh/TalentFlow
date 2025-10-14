@@ -21,6 +21,7 @@ export function useUpdateJob() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs-infinite"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] }); // <-- ADICIONE ESTA LINHA
     },
   });
 }

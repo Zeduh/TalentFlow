@@ -17,8 +17,8 @@ export function useCreateJob() {
       return res.data;
     },
     onSuccess: () => {
-      // Invalida queries para atualizar a lista de vagas
       queryClient.invalidateQueries({ queryKey: ["jobs-infinite"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] }); // <-- ADICIONE ESTA LINHA
     },
   });
 }
