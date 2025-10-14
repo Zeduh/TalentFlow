@@ -35,7 +35,7 @@ export function useJobsInfinite(params: Params) {
     queryFn: async ({ pageParam }) => {
       const requestParams = {
         ...queryParams,
-        ...(pageParam && { cursor: pageParam }),
+        ...(pageParam ? { cursor: pageParam } : {})
       };
       const res = await api.get("/jobs", { params: requestParams });
       return res.data;
