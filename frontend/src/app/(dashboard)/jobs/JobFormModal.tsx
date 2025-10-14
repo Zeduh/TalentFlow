@@ -7,7 +7,7 @@ import { useCreateJob } from "@/hooks/useCreateJob";
 import { useUpdateJob } from "@/hooks/useUpdateJob";
 import { useTenants } from "@/hooks/useTenants";
 import { useAuth } from "@/hooks/useAuth";
-import toast from "react-hot-toast"; // <-- adicione esta linha
+import toast from "react-hot-toast";
 
 type JobFormValues = {
   title: string;
