@@ -7,9 +7,18 @@ type Props = {
   onClose: () => void;
   onConfirm: () => void;
   loading?: boolean;
+  entityLabel?: string; // ex: "candidato"
+  entityName?: string;  // ex: "João Silva"
 };
 
-export function ConfirmDeleteModal({ open, onClose, onConfirm, loading }: Props) {
+export function ConfirmDeleteModal({
+  open,
+  onClose,
+  onConfirm,
+  loading,
+  entityLabel = "item",
+  entityName,
+}: Props) {
   if (!open) return null;
 
   return (
@@ -19,11 +28,11 @@ export function ConfirmDeleteModal({ open, onClose, onConfirm, loading }: Props)
           <span className="flex items-center justify-center rounded-full bg-red-100 p-2">
             <FiAlertTriangle className="text-red-600 text-2xl" />
           </span>
-          <h2 className="text-xl font-bold text-red-700">Excluir Vaga</h2>
+          <h2 className="text-xl font-bold text-red-700">Excluir {entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1)}</h2>
         </div>
         <p className="mb-6 text-gray-700 text-base">
-          Tem certeza que deseja <span className="font-semibold text-red-700">excluir</span> esta vaga? <br />
-          <span className="text-sm text-gray-500">Esta ação não pode ser desfeita.</span>
+          Tem certeza que deseja excluir {entityLabel}
+          {entityName ? <> <b>{entityName}</b>?</> : "?"}
         </p>
         <div className="flex justify-end gap-2 mt-8">
           <button
@@ -37,28 +46,10 @@ export function ConfirmDeleteModal({ open, onClose, onConfirm, loading }: Props)
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 rounded font-semibold bg-red-600 text-white hover:bg-red-700 transition flex items-center gap-2 disabled:opacity-60"
+            className="px-4 py-2 rounded font-semibold bg-red-600 text-white hover:bg-red-700 transition"
             disabled={loading}
           >
-            {loading ? (
-              <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                />
-              </svg>
-            ) : null}
-            Excluir
+            {loading ? "Excluindo..." : "Excluir"}
           </button>
         </div>
       </div>
