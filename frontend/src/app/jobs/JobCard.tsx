@@ -53,7 +53,7 @@ export function JobCard({ job }: Props) {
       <div className="flex justify-end gap-2 mt-4">
         <Link
           href={`/jobs/${job.id}`}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors duration-200"
+          className="w-full sm:w-auto inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
           Ver detalhes
         </Link>

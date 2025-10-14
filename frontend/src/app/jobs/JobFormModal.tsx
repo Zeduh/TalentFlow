@@ -130,14 +130,14 @@ export function JobFormModal({ open, onClose, initialData, jobId }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition"
+            className="w-full sm:w-auto px-4 py-2 rounded font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
             disabled={creating || updating}
           >
             Cancelar
           </button>
           <button
             type="submit"
-            className="px-4 py-2 rounded font-semibold bg-blue-600 text-white hover:bg-blue-700 transition"
+            className="w-full sm:w-auto px-4 py-2 rounded font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
             disabled={creating || updating}
           >
             {isEdit ? "Salvar" : "Criar"}

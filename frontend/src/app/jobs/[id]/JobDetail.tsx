@@ -107,7 +107,7 @@ export function JobDetail({ jobId }: Props) {
         onConfirm={() =>
           deleteJob(job.id, {
             onSuccess: () => {
-              toast.success("Vaga excluída com sucesso!");
+              toast.success(`Vaga "${job.title}" excluída com sucesso!`);
               setDeleteOpen(false);
               router.push("/jobs");
             },
@@ -117,6 +117,8 @@ export function JobDetail({ jobId }: Props) {
           })
         }
         loading={isPending}
+        entityLabel="vaga"
+        entityName={job.title}
       />
     </section>
   );
