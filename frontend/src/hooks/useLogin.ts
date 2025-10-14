@@ -14,7 +14,7 @@ export function useLogin() {
     },
     onSuccess: (data) => {
       login(data.access_token, data.user);
-      router.replace("/jobs");
+      router.replace("/dashboard");
     },
   });
 }
