@@ -12,14 +12,14 @@ export type Candidate = {
 
 export type CandidatesResponse = {
   data: Candidate[];
-  nextCursor?: string;
+  nextCursor?: number;
   hasMore: boolean;
 };
 
 type Params = {
   jobId: string;
   status?: string;
-  cursor?: string;
+  sequenceId?: number;
   limit?: number;
 };
 
@@ -28,6 +28,9 @@ export function useCandidates(params: Params) {
   const queryParams = { ...params };
   if (!queryParams.status) {
     delete queryParams.status;
+  }
+  if (!queryParams.sequenceId) {
+    delete queryParams.sequenceId;
   }
 
   return useQuery<CandidatesResponse>({

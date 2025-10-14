@@ -1,21 +1,44 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useCandidates } from "@/hooks/useCandidates";
+import { useCandidates, Candidate } from "@/hooks/useCandidates";
 import { CandidateFormModal } from "@/app/candidates/CandidateFormModal";
 import { CandidateStatusBadge } from "@/components/CandidateStatusBadge";
-import { Candidate } from "@/hooks/useCandidates";
 
 type Props = {
   jobId: string;
 };
 
 export function CandidateList({ jobId }: Props) {
-  const { data, isLoading, isError } = useCandidates({ jobId });
+  const LIMIT = 10;
+  const [cursor, setCursor] = useState<number | undefined>(undefined);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editCandidate, setEditCandidate] = useState<Candidate | null>(null);
 
-  if (isLoading) return <div>Carregando candidatos...</div>;
+  const { data, isLoading, isError, isFetching } = useCandidates({
+    jobId,
+    limit: LIMIT,
+    sequenceId: cursor,
+  });
+
+  // Reset lista ao trocar de vaga
+  useEffect(() => {
+    setCandidates([]);
+    setCursor(undefined);
+  }, [jobId]);
+
+  // Atualiza lista de candidatos ao buscar nova página
+  useEffect(() => {
+    if (data?.data) {
+      setCandidates((prev) =>
+        cursor ? [...prev, ...data.data] : data.data
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, cursor, jobId]);
+
+  if (isLoading && candidates.length === 0) return <div>Carregando candidatos...</div>;
   if (isError) return <div>Erro ao carregar candidatos.</div>;
 
   return (
@@ -40,7 +63,7 @@ export function CandidateList({ jobId }: Props) {
             </tr>
           </thead>
           <tbody>
-            {data?.data.map((candidate) => (
+            {candidates.map((candidate) => (
               <tr key={candidate.id} className="border-b hover:bg-blue-50 transition">
                 <td className="py-1 px-2 sm:py-2 sm:px-3">
                   <Link
@@ -66,6 +89,18 @@ export function CandidateList({ jobId }: Props) {
             ))}
           </tbody>
         </table>
+        {/* Paginação cursor-based */}
+        {data?.hasMore && (
+          <div className="flex justify-center mt-4">
+            <button
+              className="px-4 py-2 bg-blue-100 text-blue-700 rounded disabled:opacity-50"
+              onClick={() => setCursor(data.nextCursor)}
+              disabled={isFetching}
+            >
+              {isFetching ? "Carregando..." : "Carregar mais"}
+            </button>
+          </div>
+        )}
       </div>
       <CandidateFormModal
         open={modalOpen}

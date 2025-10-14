@@ -49,7 +49,13 @@ export function CandidateFormModal({ open, onClose, initialData, jobId }: Props)
             toast.success("Candidato atualizado!");
             onClose();
           },
-          onError: () => toast.error("Erro ao atualizar candidato."),
+          onError: (error: any) => {
+            if (error?.response?.status === 409) {
+              toast.error("Este candidato já está inscrito nesta vaga.");
+            } else {
+              toast.error("Erro ao atualizar candidato.");
+            }
+          },
         }
       );
     } else {
@@ -60,7 +66,13 @@ export function CandidateFormModal({ open, onClose, initialData, jobId }: Props)
             toast.success("Candidato criado!");
             onClose();
           },
-          onError: () => toast.error("Erro ao criar candidato."),
+          onError: (error: any) => {
+            if (error?.response?.status === 409) {
+              toast.error("Este candidato já está inscrito nesta vaga.");
+            } else {
+              toast.error("Erro ao criar candidato.");
+            }
+          },
         }
       );
     }
