@@ -17,13 +17,13 @@ export type CandidatesResponse = {
 };
 
 type Params = {
-  jobId: string;
+  jobId?: string; // Torna opcional
   status?: string;
   sequenceId?: number;
   limit?: number;
 };
 
-export function useCandidates(params: Params) {
+export function useCandidates(params: Params = {}) {
   // Remove status se for vazio ou undefined
   const queryParams = { ...params };
   if (!queryParams.status) {
@@ -39,6 +39,7 @@ export function useCandidates(params: Params) {
       const res = await api.get("/candidates", { params: queryParams });
       return res.data;
     },
-    enabled: !!params.jobId,
+    // Só desabilita se params for explicitamente passado e jobId for falsy
+    enabled: params.jobId !== undefined ? !!params.jobId : true,
   });
 }
