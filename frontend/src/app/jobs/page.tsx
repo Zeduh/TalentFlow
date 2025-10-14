@@ -6,10 +6,12 @@ import { JobList } from "./JobList";
 import { JobFilters } from "./JobFilters";
 import { useAuth } from "@/hooks/useAuth";
 import { TenantFilter } from "@/components/TenantFilter";
+import { JobFormModal } from "./JobFormModal";
 
 export default function JobsPage() {
   const [status, setStatus] = useState<string>("");
   const [tenant, setTenant] = useState<string | undefined>(undefined);
+  const [modalOpen, setModalOpen] = useState(false); // controle do modal
   const { user } = useAuth();
 
   const params = useMemo(() => {
@@ -56,10 +58,13 @@ export default function JobsPage() {
               />
             </div>
             
-            {/* Espaço para ações futuras (ex: botão criar vaga) */}
+            {/* Botão para abrir o modal */}
             <div className="flex gap-2">
               {(user?.role === "admin" || user?.role === "recruiter") && (
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium">
+                <button
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200 text-sm font-medium"
+                  onClick={() => setModalOpen(true)}
+                >
                   + Nova Vaga
                 </button>
               )}
@@ -88,6 +93,9 @@ export default function JobsPage() {
             fetchNextPage={fetchNextPage}
           />
         )}
+
+        {/* Modal de criação de vaga */}
+        <JobFormModal open={modalOpen} onClose={() => setModalOpen(false)} />
       </div>
     </main>
   );
