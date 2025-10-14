@@ -82,7 +82,11 @@ export class CandidateService {
 
   async findById(id: string) {
     this.logger.log(`Buscando candidato por ID: ${id}`);
-    const candidate = await this.candidateRepository.findOne({ where: { id } });
+    const candidate = await this.candidateRepository
+      .createQueryBuilder('candidate')
+      .leftJoinAndSelect('candidate.interviews', 'interview')
+      .where('candidate.id = :id', { id })
+      .getOne();    
     if (!candidate) {
       throw new NotFoundException('Candidato não encontrado');
     }
