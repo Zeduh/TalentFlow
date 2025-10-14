@@ -14,7 +14,7 @@ type Props = {
   isTablet?: boolean;
 };
 
-export function InterviewList({ filters, isTablet }: Props) {
+export function InterviewList({ filters }: Props) {
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useInterviews(filters);
 
@@ -26,115 +26,63 @@ export function InterviewList({ filters, isTablet }: Props) {
 
   const interviews = data?.pages.flatMap((page) => page.data) ?? [];
 
-  // Decide responsividade: se isTablet foi passado, usa ele; senão, usa Tailwind (retrocompatível)
-  const showTable = isTablet === undefined ? undefined : !isTablet;
-  const showCards = isTablet === undefined ? undefined : isTablet;
+  if (!interviews.length) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-gray-400 text-6xl mb-4">📅</div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhuma entrevista encontrada</h3>
+        <p className="text-gray-600">Tente ajustar os filtros para encontrar entrevistas.</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {/* Tabela para telas maiores que 790px */}
-      {(showTable ?? true) && (
-        <div className={`overflow-x-auto ${isTablet === undefined ? "hidden min-[791px]:block" : showTable ? "" : "hidden"}`}>
-          <table className="min-w-[700px] w-full text-sm bg-white rounded-xl shadow border border-gray-200">
-            <thead>
-              <tr className="bg-blue-600">
-                <th className="p-3 text-left text-white font-semibold">Candidato</th>
-                <th className="p-3 text-left text-white font-semibold">Vaga</th>
-                {user?.role === "admin" && (
-                  <th className="p-3 text-left text-white font-semibold">Tenant</th>
-                )}
-                <th className="p-3 text-left text-white font-semibold">Data/Hora</th>
-                <th className="p-3 text-left text-white font-semibold">Status</th>
-                <th className="p-3 text-left text-white font-semibold">Calendário</th>
-                <th className="p-3 text-left text-white font-semibold">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {interviews.map((interview) => (
-                <tr
-                  key={interview.id}
-                  className="border-t hover:bg-blue-50 transition-colors"
-                >
-                  <td className="p-3 text-gray-900 font-medium">{interview.candidateName || interview.candidateId}</td>
-                  <td className="p-3 text-gray-900">{interview.jobTitle || "-"}</td>
-                  {user?.role === "admin" && (
-                    <td className="p-3 text-gray-900">{interview.organizationName || interview.organizationId || "-"}</td>
-                  )}
-                  <td className="p-3 text-gray-900 whitespace-nowrap">{new Date(interview.scheduledAt).toLocaleString()}</td>
-                  <td className="p-3">
-                    <InterviewStatusBadge status={interview.status} />
-                  </td>
-                  <td className="p-3">
-                    <a
-                      href={interview.calendarLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 underline font-medium break-all"
-                    >
-                      Link
-                    </a>
-                  </td>
-                  <td className="p-3">
-                    <button
-                      className="px-3 py-1 text-xs rounded bg-yellow-200 text-yellow-900 font-semibold hover:bg-yellow-300 transition"
-                      onClick={() => setEditInterview(interview)}
-                    >
-                      Editar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Cards para telas até 790px */}
-      {(showCards ?? true) && (
-        <div className={`flex flex-col gap-4 ${isTablet === undefined ? "min-[791px]:hidden" : showCards ? "" : "hidden"}`}>
-          {interviews.map((interview) => (
-            <div
-              key={interview.id}
-              className="bg-white rounded-xl shadow border border-gray-200 p-4 flex flex-col gap-2"
-            >
-              <div className="flex justify-between items-center mb-1">
-                <span className="font-semibold text-gray-900 text-base">{interview.candidateName || interview.candidateId}</span>
-                <InterviewStatusBadge status={interview.status} />
+    <div className="space-y-4">
+      {interviews.map((interview) => (
+        <div
+          key={interview.id}
+          className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-6 flex flex-col gap-2"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <div className="text-base font-semibold text-gray-900 mb-1">
+                {interview.candidateName || interview.candidateId}
               </div>
-              <div className="text-gray-700 text-sm">
+              <div className="text-sm text-gray-700">
                 <span className="font-medium">Vaga: </span>
                 {interview.jobTitle || "-"}
               </div>
               {user?.role === "admin" && (
-                <div className="text-gray-700 text-sm">
+                <div className="text-sm text-gray-700">
                   <span className="font-medium">Tenant: </span>
                   {interview.organizationName || interview.organizationId || "-"}
                 </div>
               )}
-              <div className="text-gray-700 text-sm">
+              <div className="text-sm text-gray-700">
                 <span className="font-medium">Data/Hora: </span>
                 {new Date(interview.scheduledAt).toLocaleString()}
               </div>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <a
-                  href={interview.calendarLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-700 underline font-medium break-all"
-                >
-                  Link
-                </a>
-                <button
-                  className="px-3 py-1 text-xs rounded bg-yellow-200 text-yellow-900 font-semibold hover:bg-yellow-300 transition"
-                  onClick={() => setEditInterview(interview)}
-                >
-                  Editar
-                </button>
-              </div>
             </div>
-          ))}
+            <div className="flex flex-col items-end gap-2 min-w-[120px]">
+              <InterviewStatusBadge status={interview.status} />
+              <a
+                href={interview.calendarLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-700 underline font-medium break-all text-xs"
+              >
+                Link do Calendário
+              </a>
+              <button
+                className="px-3 py-1 text-xs rounded bg-yellow-200 text-yellow-900 font-semibold hover:bg-yellow-300 transition"
+                onClick={() => setEditInterview(interview)}
+              >
+                Editar
+              </button>
+            </div>
+          </div>
         </div>
-      )}
+      ))}
 
       {hasNextPage && (
         <div className="flex justify-center mt-4">
