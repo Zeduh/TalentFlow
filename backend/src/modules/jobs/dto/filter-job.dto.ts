@@ -1,4 +1,4 @@
-import { IsOptional, IsEnum, IsUUID } from 'class-validator';
+import { IsOptional, IsEnum, IsUUID, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { JobStatus } from '../job.entity';
 
@@ -8,9 +8,9 @@ export class FilterJobDto {
   @IsEnum(JobStatus)
   status?: JobStatus;
 
-  @ApiPropertyOptional({ example: '5189d949-0dd7-40f5-8c26-a4a1b3839f8f' })
+  @ApiPropertyOptional({ example: '2025-10-14T08:24:05.650Z' })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   cursor?: string;
 
   @ApiPropertyOptional({ example: 10 })
