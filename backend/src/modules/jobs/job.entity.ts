@@ -11,7 +11,7 @@ export class Job {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @PrimaryGeneratedColumn({ name: 'sequence_id' })
+  @Column({ name: 'sequence_id', type: 'int', generated: 'increment', unique: true })
   sequenceId: number; // For cursor-based pagination
 
   @Column()

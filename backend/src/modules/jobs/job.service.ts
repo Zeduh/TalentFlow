@@ -81,15 +81,28 @@ export class JobService {
   async update(id: string, data: UpdateJobDto) {
     this.logger.log(`Atualizando vaga ${id}: ${JSON.stringify(data)}`);
 
-    if (data.organizationId)
-      await assertEntityExists(
-        this.tenantService,
-        data.organizationId,
-        'Tenant',
-      );
+    try {
+      if (data.organizationId) {
+        this.logger.log(`Verificando existência do tenant: ${data.organizationId}`);
+        await assertEntityExists(
+          this.tenantService,
+          data.organizationId,
+          'Tenant',
+        );
+      }
 
-    await this.jobRepository.update(id, data);
-    return this.findById(id);
+      this.logger.log(`Atualizando no banco: id=${id}, data=${JSON.stringify(data)}`);
+      await this.jobRepository.update(id, data);
+
+      this.logger.log(`Buscando vaga atualizada id=${id}`);
+      return this.findById(id);
+    } catch (error) {
+      this.logger.error(
+        `Erro ao atualizar vaga ${id}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
   }
 
   async remove(id: string) {
