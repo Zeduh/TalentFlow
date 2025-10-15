@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/axios";
+import { useAuth } from "@/hooks/useAuth";
 
 export type Interview = {
   id: string;
@@ -19,6 +20,7 @@ type InterviewFilters = {
 };
 
 export function useInterviews(filters: InterviewFilters = {}) {
+  const { user } = useAuth();
   return useInfiniteQuery({
     queryKey: ["interviews", filters],
     queryFn: async ({ pageParam }) => {
@@ -26,6 +28,7 @@ export function useInterviews(filters: InterviewFilters = {}) {
       const res = await api.get("/interviews", { params });
       return res.data;
     },
+    enabled: !!user,
     initialPageParam: undefined,
     getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
   });

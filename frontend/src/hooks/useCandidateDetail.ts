@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/axios";
-import { Interview } from "./useInterviews"; // Importa o tipo Interview
+import { Interview } from "./useInterviews";
+import { useAuth } from "@/hooks/useAuth";
 
 export type Candidate = {
   id: string;
@@ -13,6 +14,7 @@ export type Candidate = {
 };
 
 export function useCandidateDetail(id?: string) {
+  const { user } = useAuth();
   return useQuery<Candidate>({
     queryKey: ["candidate-detail", id],
     enabled: !!id,
@@ -20,5 +22,6 @@ export function useCandidateDetail(id?: string) {
       const res = await api.get(`/candidates/${id}`);
       return res.data;
     },
+    enabled: !!user && !!id,
   });
 }

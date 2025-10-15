@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/axios";
+import { useAuth } from "@/hooks/useAuth";
 
 export type Job = {
   id: string;
@@ -22,6 +23,7 @@ type Params = {
 };
 
 export function useJobsInfinite(params: Params) {
+  const { user } = useAuth();
   const queryParams = { ...params };
   if (!queryParams.status) {
     delete queryParams.status;
@@ -40,6 +42,7 @@ export function useJobsInfinite(params: Params) {
       const res = await api.get("/jobs", { params: requestParams });
       return res.data;
     },
+    enabled: !!user,
     getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
     initialPageParam: undefined,
   });

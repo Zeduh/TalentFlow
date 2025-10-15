@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api/axios";
+import { useAuth } from "@/hooks/useAuth";
 
 export type DashboardMetrics = {
   jobs: { open: number; closed: number; paused: number };
@@ -8,12 +9,14 @@ export type DashboardMetrics = {
 };
 
 export function useDashboardMetrics() {
+  const { user } = useAuth();
   return useQuery<DashboardMetrics>({
     queryKey: ["dashboard-metrics"],
     queryFn: async () => {
       const res = await api.get("/dashboard/metrics");
       return res.data;
     },
+    enabled: !!user,
     staleTime: 60 * 1000,
   });
 }
