@@ -9,6 +9,7 @@ import * as express from 'express';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor';
 import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -25,6 +26,9 @@ async function bootstrap() {
 
   // Global metrics interceptor
   app.useGlobalInterceptors(new MetricsInterceptor());
+
+  // Cookie parser
+  app.use(cookieParser());
 
   // CORS
   app.enableCors({
