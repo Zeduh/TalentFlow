@@ -2,6 +2,7 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { useCreateInterview } from "@/hooks/useCreateInterview";
+import { useUpdateInterview } from "@/hooks/useUpdateInterview";
 import { useDeleteInterview } from "@/hooks/useDeleteInterview";
 import { useAuth } from "@/hooks/useAuth";
 import toast from "react-hot-toast";
@@ -13,9 +14,17 @@ type Props = {
   candidateId: string;
   initialData?: any;
   isEdit?: boolean;
+  onSuccess?: () => void;
 };
 
-export function InterviewFormModal({ open, onClose, candidateId, initialData, isEdit }: Props) {
+export function InterviewFormModal({ 
+  open, 
+  onClose, 
+  candidateId, 
+  initialData, 
+  isEdit,
+  onSuccess 
+}: Props) {
   const { register, handleSubmit, reset, setValue } = useForm({
     defaultValues: {
       scheduledAt: initialData?.scheduledAt
@@ -25,6 +34,7 @@ export function InterviewFormModal({ open, onClose, candidateId, initialData, is
     },
   });
   const createInterview = useCreateInterview();
+  const updateInterview = useUpdateInterview(); 
   const deleteInterview = useDeleteInterview();
   const { user } = useAuth();
   const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
@@ -37,43 +47,72 @@ export function InterviewFormModal({ open, onClose, candidateId, initialData, is
   }, [initialData, setValue]);
 
   const onSubmit = (data: any) => {
-    if (isEdit) {
-      toast("Funcionalidade de edição ainda não implementada.");
-      onClose();
-      return;
+    if (isEdit && initialData?.id) {
+      // Implementar funcionalidade de edição
+      updateInterview.mutate(
+        {
+          id: initialData.id,
+          scheduledAt: data.scheduledAt,
+          status: data.status,
+          candidateId,
+        },
+        {
+          onSuccess: () => {
+            toast.success("Entrevista atualizada!");
+            reset();
+            onClose();
+            // Chamar onSuccess para atualizar os dados do candidato
+            if (onSuccess) onSuccess();
+          },
+          onError: (err: any) => {
+            toast.error(err?.response?.data?.message || "Erro ao atualizar entrevista.");
+          },
+        }
+      );
+    } else {
+      createInterview.mutate(
+        {
+          candidateId,
+          scheduledAt: data.scheduledAt,
+          status: data.status,
+        },
+        {
+          onSuccess: () => {
+            toast.success("Entrevista agendada!");
+            reset();
+            onClose();
+            // Chamar onSuccess para atualizar os dados do candidato
+            if (onSuccess) onSuccess();
+          },
+          onError: (err: any) => {
+            toast.error(err?.response?.data?.message || "Erro ao agendar entrevista.");
+          },
+        }
+      );
     }
-    createInterview.mutate(
-      {
-        candidateId,
-        scheduledAt: data.scheduledAt,
-        status: data.status,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Entrevista agendada!");
-          reset();
-          onClose();
-        },
-        onError: (err: any) => {
-          toast.error(err?.response?.data?.message || "Erro ao agendar entrevista.");
-        },
-      }
-    );
   };
 
   const handleDelete = () => {
     if (!initialData?.id) return;
-    deleteInterview.mutate(initialData.id, {
-      onSuccess: () => {
-        toast.success("Entrevista excluída!");
-        setConfirmDeleteOpen(false);
-        onClose();
+    deleteInterview.mutate(
+      { 
+        id: initialData.id, 
+        candidateId 
       },
-      onError: (err: any) => {
-        toast.error(err?.response?.data?.message || "Erro ao excluir entrevista.");
-        setConfirmDeleteOpen(false);
-      },
-    });
+      {
+        onSuccess: () => {
+          toast.success("Entrevista excluída!");
+          setConfirmDeleteOpen(false);
+          onClose();
+          // Chamar onSuccess para atualizar os dados do candidato
+          if (onSuccess) onSuccess();
+        },
+        onError: (err: any) => {
+          toast.error(err?.response?.data?.message || "Erro ao excluir entrevista.");
+          setConfirmDeleteOpen(false);
+        },
+      }
+    );
   };
 
   if (!open) return null;
@@ -126,7 +165,7 @@ export function InterviewFormModal({ open, onClose, candidateId, initialData, is
               <button
                 type="submit"
                 className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 transition"
-                disabled={createInterview.isPending}
+                disabled={createInterview.isPending || updateInterview.isPending}
               >
                 {isEdit ? "Salvar" : "Agendar"}
               </button>
