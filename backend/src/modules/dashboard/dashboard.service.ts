@@ -1,16 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { Job, JobStatus } from '../jobs/job.entity';
+import { Job } from '../jobs/job.entity';
 import { Candidate } from '../candidates/candidate.entity';
 import { Interview, InterviewStatus } from '../interviews/interview.entity';
+
+// Tipos para os resultados das queries
+interface StatusCount {
+  status: string;
+  count: string; // TypeORM retorna count como string
+}
 
 @Injectable()
 export class DashboardService {
   constructor(
     @InjectRepository(Job) private readonly jobRepo: Repository<Job>,
-    @InjectRepository(Candidate) private readonly candidateRepo: Repository<Candidate>,
-    @InjectRepository(Interview) private readonly interviewRepo: Repository<Interview>,
+    @InjectRepository(Candidate)
+    private readonly candidateRepo: Repository<Candidate>,
+    @InjectRepository(Interview)
+    private readonly interviewRepo: Repository<Interview>,
   ) {}
 
   async getMetrics(organizationId: string) {
@@ -21,7 +29,7 @@ export class DashboardService {
       .addSelect('COUNT(*)', 'count')
       .where('job.organizationId = :organizationId', { organizationId })
       .groupBy('job.status')
-      .getRawMany();
+      .getRawMany<StatusCount>();
 
     // Candidatos por status
     const candidates = await this.candidateRepo
@@ -30,7 +38,7 @@ export class DashboardService {
       .addSelect('COUNT(*)', 'count')
       .where('candidate.organizationId = :organizationId', { organizationId })
       .groupBy('candidate.status')
-      .getRawMany();
+      .getRawMany<StatusCount>();
 
     // Entrevistas agendadas para hoje e semana
     const today = new Date();
@@ -43,7 +51,10 @@ export class DashboardService {
     const interviewsToday = await this.interviewRepo.count({
       where: {
         organizationId,
-        scheduledAt: Between(today, new Date(today.getTime() + 24 * 60 * 60 * 1000)),
+        scheduledAt: Between(
+          today,
+          new Date(today.getTime() + 24 * 60 * 60 * 1000),
+        ),
         status: InterviewStatus.SCHEDULED,
       },
     });
@@ -58,12 +69,12 @@ export class DashboardService {
 
     return {
       jobs: {
-        open: jobs.find(j => j.status === JobStatus.OPEN)?.count ?? 0,
-        closed: jobs.find(j => j.status === JobStatus.CLOSED)?.count ?? 0,
-        paused: jobs.find(j => j.status === JobStatus.PAUSED)?.count ?? 0,
+        open: Number(jobs.find((j) => j.status === 'open')?.count ?? 0),
+        closed: Number(jobs.find((j) => j.status === 'closed')?.count ?? 0),
+        paused: Number(jobs.find((j) => j.status === 'paused')?.count ?? 0),
       },
       candidates: Object.fromEntries(
-        candidates.map(c => [c.status, Number(c.count)])
+        candidates.map((c) => [c.status, Number(c.count)]),
       ),
       interviews: {
         today: interviewsToday,

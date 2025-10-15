@@ -17,7 +17,10 @@ export class FilterCandidateDto {
   @IsOptional()
   limit?: number;
 
-  @ApiPropertyOptional({ example: 1, description: 'Cursor para paginação (sequenceId)' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Cursor para paginação (sequenceId)',
+  })
   @IsOptional()
   @IsInt()
   sequenceId?: number;

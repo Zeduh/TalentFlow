@@ -1,11 +1,31 @@
-import { Controller, Post, Body, Logger, Res, UseGuards, Get, Req } from '@nestjs/common';
-import type { Response } from 'express';
+import {
+  Controller,
+  Post,
+  Body,
+  Logger,
+  Res,
+  UseGuards,
+  Get,
+  Req,
+} from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { UserRole } from '../users/user.entity';
+
+// Interface para tipar o request com usuário autenticado
+interface AuthenticatedRequest extends Request {
+  user: {
+    userId: string;
+    email: string;
+    role: UserRole;
+    organizationId: string;
+  };
+}
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -36,7 +56,10 @@ export class AuthController {
       },
     },
   })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const { access_token, user } = await this.authService.login(dto);
 
     res.cookie('token', access_token, {
@@ -60,7 +83,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Retorna o usuário autenticado' })
-  async me(@Req() req) {
+  me(@Req() req: AuthenticatedRequest) {
     return { user: req.user };
   }
 

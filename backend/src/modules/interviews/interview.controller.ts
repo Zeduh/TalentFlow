@@ -24,7 +24,6 @@ import {
   ApiParam,
   ApiBody,
 } from '@nestjs/swagger';
-import { Interview } from './interview.entity';
 import { InterviewService } from './interview.service';
 import { CreateInterviewDto } from './dto/create-interview.dto';
 import { UpdateInterviewDto } from './dto/update-interview.dto';
@@ -34,6 +33,16 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
 import { InterviewStatus } from './interview.entity';
+
+// Interface para tipar o request com usuário autenticado
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    email: string;
+    role: UserRole;
+    organizationId: string;
+  };
+}
 
 @ApiTags('Interviews')
 @ApiBearerAuth('JWT-auth')
@@ -90,7 +99,7 @@ export class InterviewController {
   @ApiForbiddenResponse({ description: 'Acesso negado' })
   async create(
     @Body() dto: CreateInterviewDto,
-    @Req() req: Request & { user: { email: string; organizationId: string; role: string } },
+    @Req() req: AuthenticatedRequest,
   ) {
     this.logger.log(
       `POST /interviews - user: ${req.user.email} - payload: ${JSON.stringify(dto)}`,
@@ -139,7 +148,8 @@ export class InterviewController {
     name: 'organizationId',
     required: false,
     type: String,
-    description: 'UUID da organização (apenas para admin; ignorado para outros perfis)',
+    description:
+      'UUID da organização (apenas para admin; ignorado para outros perfis)',
   })
   @ApiResponse({
     status: 200,
@@ -165,7 +175,7 @@ export class InterviewController {
   @ApiForbiddenResponse({ description: 'Acesso negado' })
   async findAll(
     @Query() filter: FilterInterviewDto & { organizationId?: string },
-    @Req() req: Request & { user: { email: string; organizationId: string; role: string } },
+    @Req() req: AuthenticatedRequest,
   ) {
     this.logger.log(
       `GET /interviews - user: ${req.user.email} - filtros: ${JSON.stringify(filter)}`,
@@ -203,14 +213,14 @@ export class InterviewController {
   @ApiForbiddenResponse({ description: 'Acesso negado' })
   async findById(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Req() req: Request & { user: { organizationId: string; role: string } },
+    @Req() req: AuthenticatedRequest,
   ) {
     const interview = await this.interviewService.findById(id);
     if (
       req.user.role !== UserRole.ADMIN &&
       interview.organizationId !== req.user.organizationId
     ) {
-      throw new Error('Acesso negado a esta entrevista');
+      throw new ForbiddenException('Acesso negado a esta entrevista');
     }
     return interview;
   }
@@ -248,14 +258,16 @@ export class InterviewController {
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateInterviewDto,
-    @Req() req: Request & { user: { organizationId: string; role: string } },
+    @Req() req: AuthenticatedRequest,
   ) {
     const interview = await this.interviewService.findById(id);
 
     // Sempre obtenha o organizationId do candidato relacionado
     const candidate = interview.candidate
       ? interview.candidate
-      : await this.interviewService['candidateService'].findById(interview.candidateId);
+      : await this.interviewService['candidateService'].findById(
+          interview.candidateId,
+        );
 
     if (
       req.user.role !== UserRole.ADMIN &&
@@ -287,7 +299,7 @@ export class InterviewController {
   @ApiForbiddenResponse({ description: 'Acesso negado' })
   async remove(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Req() req: Request & { user: { email: string; organizationId: string; role: string } },
+    @Req() req: AuthenticatedRequest,
   ) {
     this.logger.warn(`DELETE /interviews/${id} - user: ${req.user.email}`);
     const interview = await this.interviewService.findById(id);
@@ -295,7 +307,9 @@ export class InterviewController {
     // Mesmo padrão: só admin, mas sempre cheque o tenant se necessário
     const candidate = interview.candidate
       ? interview.candidate
-      : await this.interviewService['candidateService'].findById(interview.candidateId);
+      : await this.interviewService['candidateService'].findById(
+          interview.candidateId,
+        );
 
     if (
       req.user.role !== UserRole.ADMIN &&

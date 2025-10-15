@@ -1,4 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, CreateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  Index,
+  CreateDateColumn,
+  ManyToOne,
+  OneToMany,
+  JoinColumn,
+} from 'typeorm';
 import { Job } from '../jobs/job.entity';
 import { Tenant } from '../tenants/tenant.entity';
 import { Interview } from '../interviews/interview.entity';
@@ -17,7 +26,12 @@ export class Candidate {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'sequence_id', type: 'int', generated: 'increment', unique: true })
+  @Column({
+    name: 'sequence_id',
+    type: 'int',
+    generated: 'increment',
+    unique: true,
+  })
   sequenceId: number; // For cursor-based pagination
 
   @Column()

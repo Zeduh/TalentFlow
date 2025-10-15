@@ -10,7 +10,6 @@ import { Repository, FindOptionsWhere } from 'typeorm';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { UpdateCandidateDto } from './dto/update-candidate.dto';
 import { FilterCandidateDto } from './dto/filter-candidate.dto';
-import { assertEntityExists } from '../../common/utils/validation.util';
 import { JobService } from '../jobs/job.service';
 
 @Injectable()
@@ -20,7 +19,7 @@ export class CandidateService {
   constructor(
     @InjectRepository(Candidate)
     private readonly candidateRepository: Repository<Candidate>,
-    private readonly jobService: JobService, // Adicione aqui
+    private readonly jobService: JobService,
   ) {}
 
   async create(data: CreateCandidateDto) {
@@ -53,7 +52,9 @@ export class CandidateService {
     if (filter.status) where.status = filter.status;
     if (filter.jobId) where.jobId = filter.jobId;
 
-    let query = this.candidateRepository.createQueryBuilder('candidate').where(where);
+    let query = this.candidateRepository
+      .createQueryBuilder('candidate')
+      .where(where);
 
     if (filter.sequenceId) {
       query = query.andWhere('candidate.sequenceId > :cursor', {
@@ -86,7 +87,7 @@ export class CandidateService {
       .createQueryBuilder('candidate')
       .leftJoinAndSelect('candidate.interviews', 'interview')
       .where('candidate.id = :id', { id })
-      .getOne();    
+      .getOne();
     if (!candidate) {
       throw new NotFoundException('Candidato não encontrado');
     }

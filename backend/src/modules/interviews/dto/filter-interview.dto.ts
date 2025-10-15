@@ -13,7 +13,10 @@ export class FilterInterviewDto {
   @IsUUID()
   candidateId?: string;
 
-  @ApiPropertyOptional({ example: 1, description: 'Cursor para paginação (sequenceId)' })
+  @ApiPropertyOptional({
+    example: 1,
+    description: 'Cursor para paginação (sequenceId)',
+  })
   @IsOptional()
   @IsInt()
   sequenceId?: number;

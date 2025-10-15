@@ -27,7 +27,6 @@ export class InterviewService {
     private readonly tenantService: TenantService,
   ) {}
 
-
   async create(data: CreateInterviewDto) {
     this.logger.log(`Agendando entrevista: ${JSON.stringify(data)}`);
 

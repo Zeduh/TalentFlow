@@ -83,7 +83,9 @@ export class JobService {
 
     try {
       if (data.organizationId) {
-        this.logger.log(`Verificando existência do tenant: ${data.organizationId}`);
+        this.logger.log(
+          `Verificando existência do tenant: ${data.organizationId}`,
+        );
         await assertEntityExists(
           this.tenantService,
           data.organizationId,
@@ -91,16 +93,19 @@ export class JobService {
         );
       }
 
-      this.logger.log(`Atualizando no banco: id=${id}, data=${JSON.stringify(data)}`);
+      this.logger.log(
+        `Atualizando no banco: id=${id}, data=${JSON.stringify(data)}`,
+      );
       await this.jobRepository.update(id, data);
 
       this.logger.log(`Buscando vaga atualizada id=${id}`);
       return this.findById(id);
     } catch (error) {
-      this.logger.error(
-        `Erro ao atualizar vaga ${id}: ${error.message}`,
-        error.stack,
-      );
+      const message =
+        error instanceof Error ? error.message : 'Erro desconhecido';
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Erro ao atualizar vaga ${id}: ${message}`, stack);
       throw error;
     }
   }

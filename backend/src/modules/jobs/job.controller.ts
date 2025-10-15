@@ -4,26 +4,16 @@ import {
   Post,
   Put,
   Delete,
-  Param,
   Body,
+  Param,
   Query,
   UseGuards,
   Req,
+  ForbiddenException,
   Logger,
   ParseUUIDPipe,
-  ForbiddenException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiQuery,
-  ApiBody,
-  ApiForbiddenResponse,
-  ApiParam,
-} from '@nestjs/swagger';
 import { JobService } from './job.service';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
@@ -32,11 +22,28 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+  ApiQuery,
+} from '@nestjs/swagger';
 
-@ApiTags('Jobs')
+// Interface para tipar o request com usuário autenticado
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    email: string;
+    role: UserRole;
+    organizationId: string;
+  };
+}
+
+@ApiTags('jobs')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('jobs')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class JobController {
   private readonly logger = new Logger(JobController.name);
 
@@ -44,226 +51,172 @@ export class JobController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.RECRUITER)
-  @ApiOperation({ summary: 'Criar vaga' })
-  @ApiBody({
-    description:
-      'Para admin: informe o organizationId desejado. Para recruiter: organizationId será ignorado e preenchido automaticamente.',
-    type: CreateJobDto,
-    examples: {
-      admin: {
-        summary: 'Admin',
-        value: {
-          title: 'Desenvolvedor Backend',
-          status: 'open',
-          organizationId: 'uuid-da-organizacao',
-        },
-      },
-      recruiter: {
-        summary: 'Recruiter',
-        value: {
-          title: 'Desenvolvedor Backend',
-          status: 'open',
-          // organizationId será ignorado se enviado pelo recruiter
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: 201,
-    description: 'Vaga criada com sucesso',
-    schema: {
-      example: {
-        id: 'uuid',
-        title: 'Desenvolvedor Backend',
-        status: 'open',
-        organizationId: 'uuid-da-organizacao',
-      },
-    },
-  })
-  @ApiForbiddenResponse({ description: 'Acesso negado' })
+  @ApiOperation({ summary: 'Criar nova vaga' })
+  @ApiResponse({ status: 201, description: 'Vaga criada com sucesso' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  @ApiResponse({ status: 403, description: 'Sem permissão' })
   async create(
-    @Body() dto: CreateJobDto,
-    @Req() req: Request & { user: { email: string; organizationId: string; role: string } },
+    @Body() createJobDto: CreateJobDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    if (req.user.role === UserRole.ADMIN) {
-      // Admin pode criar para qualquer tenant (usa o organizationId do body)
-      return this.jobService.create(dto);
+    this.logger.log(
+      `[POST /jobs] User: ${req.user.email}, Role: ${req.user.role}, Org: ${req.user.organizationId}`,
+    );
+
+    // Valida multi-tenant
+    if (
+      req.user.role === UserRole.RECRUITER &&
+      createJobDto.organizationId !== req.user.organizationId
+    ) {
+      this.logger.warn(
+        `[POST /jobs] FORBIDDEN: Recruiter tentou criar vaga em outra org`,
+      );
+      throw new ForbiddenException(
+        'Você só pode criar vagas na sua organização',
+      );
     }
-    // Recruiter só pode criar para seu tenant
-    return this.jobService.create({
-      ...dto,
-      organizationId: req.user.organizationId,
-    });
+
+    // Se admin não passou organizationId, usa a dele
+    if (!createJobDto.organizationId) {
+      createJobDto.organizationId = req.user.organizationId;
+    }
+
+    return this.jobService.create(createJobDto);
   }
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.RECRUITER, UserRole.MANAGER)
-  @ApiOperation({
-    summary: 'Listar vagas com filtros e paginação cursor-based',
-    description:
-      'Admin pode filtrar por qualquer tenant usando organizationId. Demais perfis só visualizam vagas da própria organização.',
-  })
+  @ApiOperation({ summary: 'Listar vagas com filtros e paginação' })
   @ApiQuery({
     name: 'status',
     required: false,
     enum: ['open', 'closed', 'paused'],
-    description: 'Filtrar por status da vaga',
   })
-  @ApiQuery({ name: 'cursor', required: false, type: String, description: 'Cursor para paginação' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Limite de itens por página' })
+  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({
     name: 'organizationId',
     required: false,
-    type: String,
-    description: 'UUID da organização (apenas para admin; ignorado para outros perfis)',
+    description: 'Somente admin pode usar',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista paginada de vagas',
-    schema: {
-      example: {
-        data: [
-          {
-            id: 'uuid',
-            title: 'Desenvolvedor Backend',
-            status: 'open',
-            organizationId: 'uuid',
-          },
-        ],
-        nextCursor: 'uuid',
-        hasMore: true,
-      },
-    },
-  })
-  @ApiForbiddenResponse({ description: 'Acesso negado' })
+  @ApiResponse({ status: 200, description: 'Lista de vagas' })
   async findAll(
-    @Query() filter: FilterJobDto & { organizationId?: string },
-    @Req() req: Request & { user: { email: string; organizationId: string; role: string } },
+    @Query() filter: FilterJobDto,
+    @Req() req: AuthenticatedRequest,
   ) {
     this.logger.log(
-      `GET /jobs - user: ${req.user.email} - filter: ${JSON.stringify(filter)}`,
+      `[GET /jobs] User: ${req.user.email}, Role: ${req.user.role}, Filters: ${JSON.stringify(filter)}`,
     );
 
-    // Admin pode filtrar por qualquer tenant
-    if (req.user.role === UserRole.ADMIN) {
+    // Multi-tenant: Admin pode filtrar por organizationId, outros veem só a deles
+    if (req.user.role === UserRole.ADMIN && filter.organizationId) {
       return this.jobService.findAll(filter, filter.organizationId);
     }
 
-    // Demais roles: sempre força o filtro do próprio tenant
     return this.jobService.findAll(filter, req.user.organizationId);
   }
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.RECRUITER, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Detalhar vaga' })
-  @ApiParam({
-    name: 'id',
-    type: String,
-    description: 'UUID da vaga',
-    example: 'uuid-da-vaga',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Detalhes da vaga',
-    schema: {
-      example: {
-        id: 'uuid',
-        title: 'Desenvolvedor Backend',
-        status: 'open',
-        organizationId: 'uuid-da-organizacao',
-      },
-    },
-  })
-  @ApiForbiddenResponse({ description: 'Acesso negado' })
-  async findById(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Req() req: Request & { user: { organizationId: string; role: string } },
+  @ApiOperation({ summary: 'Buscar vaga por ID' })
+  @ApiResponse({ status: 200, description: 'Vaga encontrada' })
+  @ApiResponse({ status: 404, description: 'Vaga não encontrada' })
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: AuthenticatedRequest,
   ) {
+    this.logger.log(`[GET /jobs/${id}] User: ${req.user.email}`);
+
     const job = await this.jobService.findById(id);
+
+    // Multi-tenant: Admin vê tudo, outros só da sua org
     if (
       req.user.role !== UserRole.ADMIN &&
       job.organizationId !== req.user.organizationId
     ) {
-      throw new ForbiddenException('Acesso negado a esta vaga');
+      this.logger.warn(
+        `[GET /jobs/${id}] FORBIDDEN: User tentou acessar vaga de outra org`,
+      );
+      throw new ForbiddenException(
+        'Você não pode acessar vagas de outra organização',
+      );
     }
+
     return job;
   }
 
   @Put(':id')
   @Roles(UserRole.ADMIN, UserRole.RECRUITER)
   @ApiOperation({ summary: 'Atualizar vaga' })
-  @ApiParam({
-    name: 'id',
-    type: String,
-    description: 'UUID da vaga',
-    example: 'uuid-da-vaga',
-  })
-  @ApiBody({
-    description:
-      'Para admin: pode atualizar qualquer campo. Para recruiter: só pode atualizar vagas do próprio tenant.',
-    type: UpdateJobDto,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Vaga atualizada',
-    schema: {
-      example: {
-        id: 'uuid',
-        title: 'Desenvolvedor Backend',
-        status: 'open',
-        organizationId: 'uuid-da-organizacao',
-      },
-    },
-  })
-  @ApiForbiddenResponse({ description: 'Acesso negado' })
+  @ApiResponse({ status: 200, description: 'Vaga atualizada' })
+  @ApiResponse({ status: 404, description: 'Vaga não encontrada' })
+  @ApiResponse({ status: 403, description: 'Sem permissão' })
   async update(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() dto: UpdateJobDto,
-    @Req() req: Request & { user: { email: string; organizationId: string; role: string } },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateJobDto: UpdateJobDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    this.logger.log(
-      `PUT /jobs/${id} - user: ${req.user.email} - payload: ${JSON.stringify(dto)}`,
-    );
+    this.logger.log(`[PUT /jobs/${id}] User: ${req.user.email}`);
+
     const job = await this.jobService.findById(id);
+
+    // Multi-tenant: Recruiter só edita da sua org
     if (
-      req.user.role !== UserRole.ADMIN &&
+      req.user.role === UserRole.RECRUITER &&
       job.organizationId !== req.user.organizationId
     ) {
-      throw new ForbiddenException('Acesso negado a esta vaga');
+      this.logger.warn(
+        `[PUT /jobs/${id}] FORBIDDEN: Recruiter tentou editar vaga de outra org`,
+      );
+      throw new ForbiddenException(
+        'Você só pode editar vagas da sua organização',
+      );
     }
-    // Recruiter só pode atualizar vaga do seu tenant
-    // Admin pode atualizar qualquer vaga
-    return this.jobService.update(id, {
-      ...dto,
-      ...(req.user.role !== UserRole.ADMIN && { organizationId: req.user.organizationId }),
-    });
+
+    // Recruiter não pode mudar organizationId
+    if (
+      req.user.role === UserRole.RECRUITER &&
+      updateJobDto.organizationId &&
+      updateJobDto.organizationId !== job.organizationId
+    ) {
+      this.logger.warn(
+        `[PUT /jobs/${id}] FORBIDDEN: Recruiter tentou mudar organizationId`,
+      );
+      throw new ForbiddenException(
+        'Você não pode transferir vagas entre organizações',
+      );
+    }
+
+    return this.jobService.update(id, updateJobDto);
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Remover vaga' })
-  @ApiParam({
-    name: 'id',
-    type: String,
-    description: 'UUID da vaga',
-    example: 'uuid-da-vaga',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Vaga removida',
-    schema: {
-      example: {
-        message: 'Vaga removida com sucesso',
-      },
-    },
-  })
-  @ApiForbiddenResponse({ description: 'Acesso negado' })
+  @Roles(UserRole.ADMIN, UserRole.RECRUITER)
+  @ApiOperation({ summary: 'Deletar vaga' })
+  @ApiResponse({ status: 200, description: 'Vaga deletada' })
+  @ApiResponse({ status: 404, description: 'Vaga não encontrada' })
+  @ApiResponse({ status: 403, description: 'Sem permissão' })
   async remove(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Req() req: Request & { user: { email: string; organizationId: string; role: string } },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: AuthenticatedRequest,
   ) {
-    this.logger.log(`DELETE /jobs/${id} - user: ${req.user.email}`);
+    this.logger.log(`[DELETE /jobs/${id}] User: ${req.user.email}`);
+
     const job = await this.jobService.findById(id);
+
+    // Multi-tenant: Recruiter só deleta da sua org
+    if (
+      req.user.role === UserRole.RECRUITER &&
+      job.organizationId !== req.user.organizationId
+    ) {
+      this.logger.warn(
+        `[DELETE /jobs/${id}] FORBIDDEN: Recruiter tentou deletar vaga de outra org`,
+      );
+      throw new ForbiddenException(
+        'Você só pode deletar vagas da sua organização',
+      );
+    }
+
     return this.jobService.remove(id);
   }
 }

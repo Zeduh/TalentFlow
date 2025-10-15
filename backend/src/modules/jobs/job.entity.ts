@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  Index,
+  CreateDateColumn,
+} from 'typeorm';
 
 export enum JobStatus {
   OPEN = 'open',
@@ -11,7 +17,12 @@ export class Job {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'sequence_id', type: 'int', generated: 'increment', unique: true })
+  @Column({
+    name: 'sequence_id',
+    type: 'int',
+    generated: 'increment',
+    unique: true,
+  })
   sequenceId: number; // For cursor-based pagination
 
   @Column()
@@ -27,5 +38,5 @@ export class Job {
 
   @CreateDateColumn()
   @Index()
-  createdAt: Date; 
+  createdAt: Date;
 }

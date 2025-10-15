@@ -18,9 +18,14 @@ export class Interview {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'sequence_id', type: 'int', generated: 'increment', unique: true })
+  @Column({
+    name: 'sequence_id',
+    type: 'int',
+    generated: 'increment',
+    unique: true,
+  })
   @Index()
-  sequenceId: number; 
+  sequenceId: number;
 
   @ManyToOne(() => Candidate)
   candidate: Candidate;
