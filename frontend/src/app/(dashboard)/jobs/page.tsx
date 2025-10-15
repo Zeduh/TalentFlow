@@ -7,6 +7,7 @@ import { JobFilters } from "./JobFilters";
 import { useAuth } from "@/hooks/useAuth";
 import { TenantFilter } from "@/components/TenantFilter";
 import { JobFormModal } from "./JobFormModal";
+import { PageTitle } from "@/components/PageTitle";
 
 export default function JobsPage() {
   const [status, setStatus] = useState<string>("");
@@ -39,10 +40,7 @@ export default function JobsPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-          Vagas Disponíveis
-        </h1>
-        
+        <PageTitle>Vagas Disponíveis</PageTitle>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 sm:items-center sm:justify-between">
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start sm:items-center">

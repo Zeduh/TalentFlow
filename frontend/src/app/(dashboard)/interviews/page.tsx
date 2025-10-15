@@ -4,6 +4,7 @@ import { InterviewList } from "./InterviewList";
 import { InterviewCalendar } from "./InterviewCalendar";
 import { InterviewFormModal } from "./InterviewFormModal";
 import { InterviewFilters } from "./InterviewFilters";
+import { PageTitle } from "@/components/PageTitle";
 
 export default function InterviewsPage() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -25,8 +26,8 @@ export default function InterviewsPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <h1 className="text-3xl font-extrabold text-blue-800 tracking-tight">Entrevistas</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-1">
+          <PageTitle>Entrevistas</PageTitle>
         </div>
         {/* Filtros e botões de abas juntos */}
         <InterviewFilters

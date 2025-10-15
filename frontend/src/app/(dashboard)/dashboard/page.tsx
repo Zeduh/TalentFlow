@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import { useAuth } from "@/hooks/useAuth";
+import { PageTitle } from "@/components/PageTitle";
 
 // Mapeamento de status para label e cor
 const statusMap: Record<string, { label: string; color: string; border: string }> = {
@@ -77,7 +78,7 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-8 px-2 sm:px-4">
       <div className="max-w-5xl mx-auto w-full">
-        <h1 className="text-2xl md:text-3xl font-bold mb-8 text-gray-800">Dashboard</h1>
+        <PageTitle>Dashboard</PageTitle>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <MetricCard
             title="Vagas Abertas"
