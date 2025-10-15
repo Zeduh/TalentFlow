@@ -36,7 +36,6 @@ export function CandidateList({ jobId }: Props) {
         cursor ? [...prev, ...data.data] : data.data
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, cursor, jobId]);
 
   if (isLoading && candidates.length === 0) {

@@ -4,7 +4,7 @@ import { InterviewStatusBadge } from "@/components/InterviewStatusBadge";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { InterviewFormModal } from "./InterviewFormModal";
-import { useRouter } from "next/navigation"; // Adicione esta importação
+import { useRouter } from "next/navigation";
 
 type Props = {
   filters: {
@@ -15,12 +15,24 @@ type Props = {
   isTablet?: boolean;
 };
 
+type Interview = {
+  id: string;
+  candidateId: string;
+  candidateName?: string;
+  jobTitle?: string;
+  organizationId?: string;
+  organizationName?: string;
+  scheduledAt: string;
+  status: string;
+  calendarLink: string;
+};
+
 export function InterviewList({ filters }: Props) {
-  const router = useRouter(); // Adicione este hook
+  const router = useRouter();
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useInterviews(filters);
 
-  const [editInterview, setEditInterview] = useState<any | null>(null);
+  const [editInterview, setEditInterview] = useState<Interview | null>(null);
   const { user } = useAuth();
 
   // Função para navegar para a página do candidato

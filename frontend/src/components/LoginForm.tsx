@@ -2,8 +2,6 @@
 
 import { useForm } from "react-hook-form";
 import { useLogin } from "@/hooks/useLogin";
-import { useAuth } from "../hooks/useAuth";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type LoginFields = {
@@ -12,8 +10,6 @@ type LoginFields = {
 };
 
 export function LoginForm() {
-  const { login } = useAuth();
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
   const { register, handleSubmit, formState: { isSubmitting } } = useForm<LoginFields>();

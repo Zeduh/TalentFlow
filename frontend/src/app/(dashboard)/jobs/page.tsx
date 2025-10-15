@@ -12,11 +12,14 @@ import { PageTitle } from "@/components/PageTitle";
 export default function JobsPage() {
   const [status, setStatus] = useState<string>("");
   const [tenant, setTenant] = useState<string | undefined>(undefined);
-  const [modalOpen, setModalOpen] = useState(false); // controle do modal
+  const [modalOpen, setModalOpen] = useState(false);
   const { user } = useAuth();
 
   const params = useMemo(() => {
-    const baseParams: any = { status, limit: 10 };
+    const baseParams: { status: string; limit: number; organizationId?: string } = { 
+      status, 
+      limit: 10 
+    };
     if (user?.role === "admin" && tenant) {
       baseParams.organizationId = tenant;
     }

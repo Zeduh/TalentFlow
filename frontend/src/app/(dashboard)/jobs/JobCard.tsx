@@ -1,20 +1,11 @@
 import Link from "next/link";
 import { Job } from "@/hooks/useJobs";
-import { useAuth } from "@/hooks/useAuth";
-import { useState } from "react";
-import { JobFormModal } from "./JobFormModal";
-import { useDeleteJob } from "@/hooks/useDeleteJob";
 
 type Props = {
   job: Job;
 };
 
 export function JobCard({ job }: Props) {
-  const { user } = useAuth();
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const { mutate: deleteJob, isPending } = useDeleteJob();
-
   const getStatusConfig = (status: string) => {
     switch (status) {
       case "open":
