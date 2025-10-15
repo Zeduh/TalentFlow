@@ -8,11 +8,24 @@ import { useAuth } from "@/hooks/useAuth";
 import toast from "react-hot-toast";
 import { ConfirmDeleteModal } from "@/components/ConfirmDeleteModal";
 
+type InterviewData = {
+  id: string;
+  candidateId: string;
+  candidateName?: string;
+  scheduledAt: string;
+  status: string;
+};
+
+type FormData = {
+  scheduledAt: string;
+  status: string;
+};
+
 type Props = {
   open: boolean;
   onClose: () => void;
   candidateId: string;
-  initialData?: any;
+  initialData?: InterviewData;
   isEdit?: boolean;
   onSuccess?: () => void;
 };
@@ -25,7 +38,7 @@ export function InterviewFormModal({
   isEdit,
   onSuccess 
 }: Props) {
-  const { register, handleSubmit, reset, setValue } = useForm({
+  const { register, handleSubmit, reset, setValue } = useForm<FormData>({
     defaultValues: {
       scheduledAt: initialData?.scheduledAt
         ? new Date(initialData.scheduledAt).toISOString().slice(0, 16)
@@ -46,7 +59,7 @@ export function InterviewFormModal({
     }
   }, [initialData, setValue]);
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: FormData) => {
     if (isEdit && initialData?.id) {
       // Implementar funcionalidade de edição
       updateInterview.mutate(
@@ -64,8 +77,11 @@ export function InterviewFormModal({
             // Chamar onSuccess para atualizar os dados do candidato
             if (onSuccess) onSuccess();
           },
-          onError: (err: any) => {
-            toast.error(err?.response?.data?.message || "Erro ao atualizar entrevista.");
+          onError: (err: unknown) => {
+            const errorMessage = err instanceof Error && 'response' in err 
+              ? (err as { response?: { data?: { message?: string } } }).response?.data?.message 
+              : "Erro ao atualizar entrevista.";
+            toast.error(errorMessage || "Erro ao atualizar entrevista.");
           },
         }
       );
@@ -74,7 +90,7 @@ export function InterviewFormModal({
         {
           candidateId,
           scheduledAt: data.scheduledAt,
-          status: data.status,
+          status: data.status as "scheduled" | "completed" | "cancelled",
         },
         {
           onSuccess: () => {
@@ -84,8 +100,11 @@ export function InterviewFormModal({
             // Chamar onSuccess para atualizar os dados do candidato
             if (onSuccess) onSuccess();
           },
-          onError: (err: any) => {
-            toast.error(err?.response?.data?.message || "Erro ao agendar entrevista.");
+          onError: (err: unknown) => {
+            const errorMessage = err instanceof Error && 'response' in err 
+              ? (err as { response?: { data?: { message?: string } } }).response?.data?.message 
+              : "Erro ao agendar entrevista.";
+            toast.error(errorMessage || "Erro ao agendar entrevista.");
           },
         }
       );
@@ -107,8 +126,11 @@ export function InterviewFormModal({
           // Chamar onSuccess para atualizar os dados do candidato
           if (onSuccess) onSuccess();
         },
-        onError: (err: any) => {
-          toast.error(err?.response?.data?.message || "Erro ao excluir entrevista.");
+        onError: (err: unknown) => {
+          const errorMessage = err instanceof Error && 'response' in err 
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message 
+            : "Erro ao excluir entrevista.";
+          toast.error(errorMessage || "Erro ao excluir entrevista.");
           setConfirmDeleteOpen(false);
         },
       }
