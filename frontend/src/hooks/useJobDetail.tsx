@@ -7,7 +7,6 @@ export function useJobDetail(id?: string) {
   const { user } = useAuth();
   return useQuery<Job>({
     queryKey: ["job-detail", id],
-    enabled: !!id,
     queryFn: async () => {
       const res = await api.get(`/jobs/${id}`);
       return res.data;

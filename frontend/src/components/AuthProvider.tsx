@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(res.data.user);
           localStorage.setItem("user", JSON.stringify(res.data.user));
         })
-        .catch((err) => {
+        .catch(() => {
           setUser(null);
           localStorage.removeItem("user");
         })
