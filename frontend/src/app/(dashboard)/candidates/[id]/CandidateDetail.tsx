@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCandidateDetail } from "@/hooks/useCandidateDetail";
 import { useUpdateCandidate } from "@/hooks/useUpdateCandidate";
 import { CandidateStatusBadge } from "@/components/CandidateStatusBadge";
@@ -8,6 +8,8 @@ import { CandidateTimeline } from "./CandidateTimeline";
 import { InterviewFormModal } from "@/app/(dashboard)/interviews/InterviewFormModal";
 import { InterviewStatusBadge } from "@/components/InterviewStatusBadge";
 import toast from "react-hot-toast";
+import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query"; // Adicione esta importação
 
 const STATUS_OPTIONS = [
   { value: "applied", label: "Inscrito" },
@@ -27,12 +29,45 @@ export function CandidateDetail({ id }: Props) {
   const { mutate: updateCandidate, isPending } = useUpdateCandidate();
   const [status, setStatus] = useState<string>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from");
   const [modalOpen, setModalOpen] = useState(false);
   const [editInterview, setEditInterview] = useState<any | null>(null);
+  const queryClient = useQueryClient(); // Adicione esta linha
 
+  // Função para atualizar dados do candidato após uma ação
+  const refreshCandidateData = () => {
+    queryClient.invalidateQueries({ queryKey: ["candidate-detail", id] }); // Corrigir a chave
+  };
 
-  if (isLoading) return <div>Carregando...</div>;
-  if (!candidate) return <div>Candidato não encontrado.</div>;
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-xl overflow-hidden shadow-md p-8 animate-pulse">
+        <div className="h-6 bg-gray-200 rounded mb-4 w-1/4"></div>
+        <div className="h-8 bg-gray-200 rounded mb-2 w-3/4"></div>
+        <div className="h-5 bg-gray-200 rounded mb-8 w-1/2"></div>
+        <div className="h-20 bg-gray-200 rounded mb-6"></div>
+        <div className="h-10 bg-gray-200 rounded mb-6"></div>
+        <div className="h-10 bg-gray-200 rounded mb-6 w-1/3"></div>
+      </div>
+    );
+  }
+
+  if (!candidate) {
+    return (
+      <div className="bg-white rounded-xl overflow-hidden shadow-md p-8 text-center">
+        <div className="text-5xl text-gray-300 mb-4">🔍</div>
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">Candidato não encontrado</h3>
+        <p className="text-gray-600 mb-6">O candidato que você está procurando não existe ou foi removido.</p>
+        <button
+          onClick={() => router.back()}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Voltar
+        </button>
+      </div>
+    );
+  }
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newStatus = e.target.value;
@@ -40,102 +75,197 @@ export function CandidateDetail({ id }: Props) {
     updateCandidate(
       { id: candidate.id, status: newStatus, jobId: candidate.jobId },
       {
-        onSuccess: () => toast.success("Status atualizado!"),
-        onError: () => toast.error("Erro ao atualizar status."),
+        onSuccess: () => {
+          toast.success("Status atualizado com sucesso!");
+          refreshCandidateData(); // Atualiza dados após alterar status
+        },
+        onError: () => toast.error("Erro ao atualizar status do candidato."),
       }
     );
   };
 
+  // Configurar o botão de voltar com base no parâmetro "from"
+  const getBackNavigation = () => {
+    if (from === "interviews") {
+      return {
+        url: "/interviews",
+        label: "Entrevistas"
+      };
+    }
+    
+    return {
+      url: `/jobs/${candidate.jobId}`,
+      label: "Vaga"
+    };
+  };
+
+  const backNav = getBackNavigation();
+  const hasInterviews = candidate?.interviews && candidate.interviews.length > 0;
+
+  // Função para lidar com o sucesso da operação no modal
+  const handleInterviewSuccess = () => {
+    refreshCandidateData();
+    setModalOpen(false);
+    setEditInterview(null);
+  };
+
   return (
-    <div className="bg-white rounded-xl p-8 shadow border border-gray-200 max-w-xl mx-auto">
-      <button
-        className="mb-4 text-blue-700 hover:underline flex items-center gap-1"
-        onClick={() => router.push(`/jobs/${candidate.jobId}`)}
-        aria-label="Voltar para lista de candidatos"
-      >
-        <span aria-hidden>←</span> Voltar para vaga
-      </button>
-      <h2 className="text-2xl font-bold mb-2 text-blue-800">{candidate.name}</h2>
-      <p className="mb-2 text-gray-700">{candidate.email}</p>
-      <div className="mb-6">
-        <h3 className="font-semibold text-gray-800 mb-2 text-center">Pipeline do Candidato</h3>
-        <div className="flex justify-center">
-          <CandidateTimeline status={candidate.status} />
-        </div>
+    <div className="max-w-5xl mx-auto">
+      {/* Cabeçalho com navegação */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <Link
+          href={backNav.url}
+          className="flex items-center text-blue-700 hover:text-blue-800 transition-colors font-medium mb-4 sm:mb-0"
+        >
+          <span aria-hidden className="mr-1 text-lg">←</span> 
+          Voltar para {backNav.label}
+        </Link>
       </div>
-      <label className="block mb-1 text-sm font-medium text-gray-800">Alterar status:</label>
-      <select
-        className="mb-4 w-full rounded border px-3 py-2 bg-gray-100 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600"
-        value={status ?? candidate.status}
-        onChange={handleStatusChange}
-        disabled={isPending}
-      >
-        {STATUS_OPTIONS.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
 
-      {/* Botão de agendar entrevista */}
-      <button
-        className="mb-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        onClick={() => setModalOpen(true)}
-      >
-        Agendar Entrevista
-      </button>
-
-      {candidate?.interviews && candidate.interviews.length > 0 && (
-        <div className="mb-6">
-          <h3 className="font-semibold text-gray-800 mb-3 text-lg">Entrevistas Agendadas</h3>
-          <div className="rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-            <table className="w-full text-sm bg-white">
-              <thead className="bg-blue-600">
-                <tr>
-                  <th className="p-3 text-left text-white font-semibold">Data/Hora</th>
-                  <th className="p-3 text-left text-white font-semibold">Status</th>
-                  <th className="p-3 text-left text-white font-semibold">Calendário</th>
-                  <th className="p-3 text-left text-white font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {candidate.interviews.map((interview) => (
-                  <tr key={interview.id} className="border-t hover:bg-blue-50 transition">
-                    <td className="p-3 text-gray-900">{new Date(interview.scheduledAt).toLocaleString()}</td>
-                    <td className="p-3">
-                      <InterviewStatusBadge status={interview.status} />
-                    </td>
-                    <td className="p-3">
-                      <a
-                        href={interview.calendarLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-700 underline font-medium"
-                      >
-                        Link
-                      </a>
-                    </td>
-                    <td className="p-3">
-                      <button
-                        className="px-2 py-1 text-xs rounded bg-yellow-200 text-yellow-900 font-semibold hover:bg-yellow-300"
-                        onClick={() => setEditInterview(interview)}
-                      >
-                        Editar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Card Principal */}
+      <div className="bg-white rounded-xl overflow-hidden shadow-md border border-gray-200">
+        {/* Header com informações principais */}
+        <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-1">{candidate.name}</h2>
+              <div className="text-gray-600 mb-2">{candidate.email}</div>
+              {candidate.jobTitle && (
+                <Link 
+                  href={`/jobs/${candidate.jobId}`}
+                  className="inline-flex items-center text-sm text-blue-700 hover:text-blue-800 hover:underline"
+                >
+                  <span className="mr-1">📋</span> {candidate.jobTitle}
+                </Link>
+              )}
+            </div>
+            <div className="flex flex-col items-start md:items-end gap-2">
+              <CandidateStatusBadge status={candidate.status} className="text-sm px-3 py-1" />
+              <span className="text-xs text-gray-500">
+                Candidato #{candidate.sequenceId || '---'}
+              </span>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Pipeline e Status */}
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-800 mb-4 text-lg">Pipeline do Candidato</h3>
+          <div className="mb-6 overflow-x-auto">
+            <CandidateTimeline status={candidate.status} />
+          </div>
+          
+          <div className="mt-6">
+            <label className="block mb-2 text-sm font-medium text-gray-700">Alterar status:</label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <select
+                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                value={status ?? candidate.status}
+                onChange={handleStatusChange}
+                disabled={isPending}
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              
+              {isPending && (
+                <span className="inline-flex items-center text-sm text-gray-500">
+                  <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Atualizando...
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Seção de Entrevistas */}
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-800 text-lg">Entrevistas Agendadas</h3>
+            <button
+              className="px-3 py-1.5 bg-blue-100 text-blue-800 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium"
+              onClick={() => setModalOpen(true)}
+            >
+              + Nova entrevista
+            </button>
+          </div>
+
+          {!hasInterviews ? (
+            <div className="bg-gray-50 rounded-lg p-8 text-center border border-dashed border-gray-300">
+              <div className="text-4xl text-gray-300 mb-2">📅</div>
+              <h4 className="text-lg font-medium text-gray-800 mb-1">Sem entrevistas agendadas</h4>
+              <p className="text-gray-600 mb-4">Agende uma entrevista para este candidato.</p>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+                onClick={() => setModalOpen(true)}
+              >
+                Agendar entrevista
+              </button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="w-full text-sm bg-white">
+                <thead className="bg-gray-100 text-gray-700">
+                  <tr>
+                    <th className="p-3 text-left font-semibold border-b">Data/Hora</th>
+                    <th className="p-3 text-left font-semibold border-b">Status</th>
+                    <th className="p-3 text-left font-semibold border-b">Calendário</th>
+                    <th className="p-3 text-left font-semibold border-b">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {candidate.interviews.map((interview) => (
+                    <tr key={interview.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                      <td className="p-3 text-gray-900">
+                        <div className="font-medium">
+                          {new Date(interview.scheduledAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-gray-500 text-xs">
+                          {new Date(interview.scheduledAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <InterviewStatusBadge status={interview.status} />
+                      </td>
+                      <td className="p-3">
+                        <a
+                          href={interview.calendarLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center text-blue-700 hover:text-blue-800 hover:underline font-medium text-sm"
+                        >
+                          <span className="mr-1">🔗</span> Ver no calendário
+                        </a>
+                      </td>
+                      <td className="p-3">
+                        <button
+                          className="px-3 py-1.5 text-xs rounded-md bg-amber-100 text-amber-800 font-medium hover:bg-amber-200 transition-colors"
+                          onClick={() => setEditInterview(interview)}
+                        >
+                          Editar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
       
       {/* Modal de agendamento */}
       <InterviewFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         candidateId={id}
+        onSuccess={handleInterviewSuccess}
       />
 
       {/* Modal de edição */}
@@ -146,6 +276,7 @@ export function CandidateDetail({ id }: Props) {
           candidateId={id}
           initialData={editInterview}
           isEdit
+          onSuccess={handleInterviewSuccess}
         />
       )}
     </div>

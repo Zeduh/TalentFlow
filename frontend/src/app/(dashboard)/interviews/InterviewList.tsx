@@ -4,6 +4,7 @@ import { InterviewStatusBadge } from "@/components/InterviewStatusBadge";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { InterviewFormModal } from "./InterviewFormModal";
+import { useRouter } from "next/navigation"; // Adicione esta importação
 
 type Props = {
   filters: {
@@ -15,11 +16,17 @@ type Props = {
 };
 
 export function InterviewList({ filters }: Props) {
+  const router = useRouter(); // Adicione este hook
   const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useInterviews(filters);
 
   const [editInterview, setEditInterview] = useState<any | null>(null);
   const { user } = useAuth();
+
+  // Função para navegar para a página do candidato
+  const navigateToCandidate = (candidateId: string) => {
+    router.push(`/candidates/${candidateId}?from=interviews`);
+  };
 
   if (isLoading) return <div>Carregando entrevistas...</div>;
   if (isError) return <div>Erro ao carregar entrevistas.</div>;
@@ -45,7 +52,10 @@ export function InterviewList({ filters }: Props) {
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
-              <div className="text-base font-semibold text-gray-900 mb-1">
+              <div 
+                className="text-base font-semibold text-gray-900 mb-1 cursor-pointer hover:text-blue-700 hover:underline"
+                onClick={() => navigateToCandidate(interview.candidateId)}
+              >
                 {interview.candidateName || interview.candidateId}
               </div>
               <div className="text-sm text-gray-700">
