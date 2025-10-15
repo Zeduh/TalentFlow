@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCandidates, Candidate } from "@/hooks/useCandidates";
 import { CandidateFormModal } from "@/app/(dashboard)/candidates/CandidateFormModal";
 import { CandidateStatusBadge } from "@/components/CandidateStatusBadge";
+import { Skeleton } from "@/components/Skeleton";
 
 type Props = {
   jobId: string;
@@ -38,7 +39,29 @@ export function CandidateList({ jobId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, cursor, jobId]);
 
-  if (isLoading && candidates.length === 0) return <div>Carregando candidatos...</div>;
+  if (isLoading && candidates.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-8 w-40" />
+        </div>
+        <div className="grid gap-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="bg-gray-100 rounded-lg p-4 flex flex-col gap-2">
+              <Skeleton className="h-5 w-32 mb-2" />
+              <Skeleton className="h-4 w-40 mb-1" />
+              <Skeleton className="h-6 w-20" />
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-16" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (isError) return <div>Erro ao carregar candidatos.</div>;
 
   return (
@@ -52,56 +75,45 @@ export function CandidateList({ jobId }: Props) {
           + Novo Candidato
         </button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="border-b bg-gray-50">
-              <th className="py-1 px-2 text-left text-xs font-semibold text-gray-700 sm:py-2 sm:px-3 sm:text-sm">Nome</th>
-              <th className="py-1 px-2 text-left text-xs font-semibold text-gray-700 sm:py-2 sm:px-3 sm:text-sm">E-mail</th>
-              <th className="py-1 px-2 text-left text-xs font-semibold text-gray-700 sm:py-2 sm:px-3 sm:text-sm">Status</th>
-              <th className="py-1 px-2 sm:py-2 sm:px-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {candidates.map((candidate) => (
-              <tr key={candidate.id} className="border-b hover:bg-blue-50 transition">
-                <td className="py-1 px-2 sm:py-2 sm:px-3">
-                  <Link
-                    href={`/candidates/${candidate.id}`}
-                    className="text-blue-700 hover:underline font-medium"
-                  >
-                    {candidate.name}
-                  </Link>
-                </td>
-                <td className="py-1 px-2 text-gray-800 sm:py-2 sm:px-3">{candidate.email}</td>
-                <td className="py-1 px-2 sm:py-2 sm:px-3">
-                  <CandidateStatusBadge status={candidate.status} />
-                </td>
-                <td className="py-1 px-2 sm:py-2 sm:px-3">
-                  <button
-                    className="text-xs sm:text-sm text-gray-600 hover:text-blue-700 font-semibold"
-                    onClick={() => { setEditCandidate(candidate); setModalOpen(true); }}
-                  >
-                    Editar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {/* Paginação cursor-based */}
-        {data?.hasMore && (
-          <div className="flex justify-center mt-4">
-            <button
-              className="px-4 py-2 bg-blue-100 text-blue-700 rounded disabled:opacity-50"
-              onClick={() => setCursor(data.nextCursor)}
-              disabled={isFetching}
-            >
-              {isFetching ? "Carregando..." : "Carregar mais"}
-            </button>
+      <div className="grid gap-4">
+        {candidates.map((candidate) => (
+          <div
+            key={candidate.id}
+            className="bg-gray-50 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+          >
+            <div>
+              <Link
+                href={`/candidates/${candidate.id}?from=jobs`}
+                className="text-blue-700 hover:underline font-medium text-base"
+              >
+                {candidate.name}
+              </Link>
+              <div className="text-sm text-gray-800">{candidate.email}</div>
+            </div>
+            <div className="flex flex-col sm:items-end gap-2 min-w-[120px]">
+              <CandidateStatusBadge status={candidate.status} />
+              <button
+                className="px-3 py-1 text-xs rounded bg-yellow-200 text-yellow-900 font-semibold hover:bg-yellow-300 transition"
+                onClick={() => { setEditCandidate(candidate); setModalOpen(true); }}
+              >
+                Editar
+              </button>
+            </div>
           </div>
-        )}
+        ))}
       </div>
+      {/* Paginação cursor-based */}
+      {data?.hasMore && (
+        <div className="flex justify-center mt-4">
+          <button
+            className="px-4 py-2 bg-blue-100 text-blue-700 rounded disabled:opacity-50"
+            onClick={() => setCursor(data.nextCursor)}
+            disabled={isFetching}
+          >
+            {isFetching ? "Carregando..." : "Carregar mais"}
+          </button>
+        </div>
+      )}
       <CandidateFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}

@@ -13,7 +13,7 @@ export function useLogin() {
       return response.data;
     },
     onSuccess: (data) => {
-      login(data.access_token, data.user);
+      login(data.user);
       router.replace("/dashboard");
     },
   });
