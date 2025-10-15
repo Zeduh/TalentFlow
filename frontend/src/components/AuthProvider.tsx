@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useEffect, useState, createContext, useContext, ReactNode } from "react";
+import { api } from "@/lib/api/axios";
 
-// Ajuste aqui para refletir o backend
 type User = {
   sub: string;
   email: string;
@@ -10,49 +10,60 @@ type User = {
 
 type AuthContextType = {
   user: User | null;
-  token: string | null;
-  login: (token: string, user: User) => void;
+  login: (user: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const isLoginPage = typeof window !== "undefined" && window.location.pathname === "/login";
+    
     const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
-    if (storedToken && storedUser) {
-      setToken(storedToken);
+    if (storedUser) {
       setUser(JSON.parse(storedUser));
+      setIsLoading(false);
+    } else if (!isLoginPage) { // Só chama /auth/me se não estiver na página de login
+      api.get("/auth/me")
+        .then(res => {
+          setUser(res.data.user);
+          localStorage.setItem("user", JSON.stringify(res.data.user));
+        })
+        .catch((err) => {
+          setUser(null);
+          localStorage.removeItem("user");
+        })
+        .finally(() => setIsLoading(false));
+    } else {
+      setIsLoading(false);
     }
   }, []);
 
-  const login = (newToken: string, newUser: User) => {
-    setToken(newToken);
+  const login = (newUser: User) => {
     setUser(newUser);
-    localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(newUser));
   };
 
   const logout = () => {
-    setToken(null);
     setUser(null);
-    localStorage.removeItem("token");
     localStorage.removeItem("user");
+    api.post("/auth/logout"); // Limpa cookie no backend
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
         login,
         logout,
-        isAuthenticated: !!token,
+        isAuthenticated: !!user,
+        isLoading,
       }}
     >
       {children}
