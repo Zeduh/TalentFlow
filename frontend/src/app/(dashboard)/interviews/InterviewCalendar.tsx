@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Calendar, dateFnsLocalizer } from "react-big-calendar";
+import { Calendar, dateFnsLocalizer, Event } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useInterviews } from "@/hooks/useInterviews";
 import { InterviewStatusBadge } from "@/components/InterviewStatusBadge";
@@ -15,6 +15,19 @@ const localizer = dateFnsLocalizer({
   getDay,
   locales,
 });
+
+type InterviewEvent = Event & {
+  id: string;
+  resource: {
+    id: string;
+    candidateId: string;
+    candidateName?: string;
+    jobTitle?: string;
+    scheduledAt: string;
+    status: string;
+    calendarLink: string;
+  };
+};
 
 export function InterviewCalendar() {
   const { data, isLoading, isError } = useInterviews({ limit: 100 });
@@ -31,7 +44,7 @@ export function InterviewCalendar() {
   if (isError) return <div>Erro ao carregar entrevistas.</div>;
 
   const interviews = data?.pages.flatMap((page) => page.data) ?? [];
-  const events = interviews.map((interview) => ({
+  const events: InterviewEvent[] = interviews.map((interview) => ({
     id: interview.id,
     title: `${interview.candidateName || "Candidato"} (${interview.jobTitle || "Vaga"})`,
     start: new Date(interview.scheduledAt),
@@ -69,7 +82,7 @@ export function InterviewCalendar() {
             showMore: (total: number) => `+${total} mais`,
           }}
           components={{
-            event: ({ event }: { event: any }) => (
+            event: ({ event }: { event: InterviewEvent }) => (
               <span>
                 <InterviewStatusBadge status={event.resource.status} />{" "}
                 {event.title}

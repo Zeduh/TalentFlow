@@ -1,3 +1,4 @@
+"use client";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { useCreateCandidate } from "@/hooks/useCreateCandidate";
@@ -15,6 +16,12 @@ type Props = {
   jobId: string;
 };
 
+type CandidateFormData = {
+  name: string;
+  email: string;
+  status: string;
+};
+
 export function CandidateFormModal({ open, onClose, initialData, jobId }: Props) {
   const isEdit = !!initialData;
   const { mutate: createCandidate, isPending: creating } = useCreateCandidate();
@@ -24,7 +31,7 @@ export function CandidateFormModal({ open, onClose, initialData, jobId }: Props)
 
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<CandidateFormData>({
     defaultValues: initialData || { name: "", email: "", status: "applied" },
   });
 
@@ -35,7 +42,7 @@ export function CandidateFormModal({ open, onClose, initialData, jobId }: Props)
     }
   }, [open, initialData, reset]);
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: CandidateFormData) => {
     if (isEdit) {
       updateCandidate(
         {
@@ -49,8 +56,12 @@ export function CandidateFormModal({ open, onClose, initialData, jobId }: Props)
             toast.success("Candidato atualizado!");
             onClose();
           },
-          onError: (error: any) => {
-            if (error?.response?.status === 409) {
+          onError: (error: unknown) => {
+            const status = error && typeof error === 'object' && 'response' in error 
+              ? (error as { response?: { status?: number } }).response?.status 
+              : null;
+            
+            if (status === 409) {
               toast.error("Este candidato já está inscrito nesta vaga.");
             } else {
               toast.error("Erro ao atualizar candidato.");
@@ -66,8 +77,12 @@ export function CandidateFormModal({ open, onClose, initialData, jobId }: Props)
             toast.success("Candidato criado!");
             onClose();
           },
-          onError: (error: any) => {
-            if (error?.response?.status === 409) {
+          onError: (error: unknown) => {
+            const status = error && typeof error === 'object' && 'response' in error 
+              ? (error as { response?: { status?: number } }).response?.status 
+              : null;
+            
+            if (status === 409) {
               toast.error("Este candidato já está inscrito nesta vaga.");
             } else {
               toast.error("Erro ao criar candidato.");

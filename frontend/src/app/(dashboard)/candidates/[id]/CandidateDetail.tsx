@@ -9,7 +9,7 @@ import { InterviewFormModal } from "@/app/(dashboard)/interviews/InterviewFormMo
 import { InterviewStatusBadge } from "@/components/InterviewStatusBadge";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import { useQueryClient } from "@tanstack/react-query"; // Adicione esta importação
+import { useQueryClient } from "@tanstack/react-query";
 
 const STATUS_OPTIONS = [
   { value: "applied", label: "Inscrito" },
@@ -19,6 +19,17 @@ const STATUS_OPTIONS = [
   { value: "hired", label: "Contratado" },
   { value: "rejected", label: "Rejeitado" },
 ];
+
+type CandidateStatus = "applied" | "screening" | "interview_scheduled" | "offer" | "hired" | "rejected";
+
+type Interview = {
+  id: string;
+  candidateId: string;
+  candidateName?: string;
+  scheduledAt: string;
+  status: string;
+  calendarLink: string;
+};
 
 type Props = {
   id: string;
@@ -32,12 +43,12 @@ export function CandidateDetail({ id }: Props) {
   const searchParams = useSearchParams();
   const from = searchParams.get("from");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editInterview, setEditInterview] = useState<any | null>(null);
-  const queryClient = useQueryClient(); // Adicione esta linha
+  const [editInterview, setEditInterview] = useState<Interview | null>(null);
+  const queryClient = useQueryClient();
 
   // Função para atualizar dados do candidato após uma ação
   const refreshCandidateData = () => {
-    queryClient.invalidateQueries({ queryKey: ["candidate-detail", id] }); // Corrigir a chave
+    queryClient.invalidateQueries({ queryKey: ["candidate-detail", id] });
   };
 
   if (isLoading) {
@@ -77,7 +88,7 @@ export function CandidateDetail({ id }: Props) {
       {
         onSuccess: () => {
           toast.success("Status atualizado com sucesso!");
-          refreshCandidateData(); // Atualiza dados após alterar status
+          refreshCandidateData();
         },
         onError: () => toast.error("Erro ao atualizar status do candidato."),
       }
@@ -130,20 +141,17 @@ export function CandidateDetail({ id }: Props) {
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-1">{candidate.name}</h2>
               <div className="text-gray-600 mb-2">{candidate.email}</div>
-              {candidate.jobTitle && (
+              {candidate.jobId && (
                 <Link 
                   href={`/jobs/${candidate.jobId}`}
                   className="inline-flex items-center text-sm text-blue-700 hover:text-blue-800 hover:underline"
                 >
-                  <span className="mr-1">📋</span> {candidate.jobTitle}
+                  <span className="mr-1">📋</span> Ver vaga
                 </Link>
               )}
             </div>
             <div className="flex flex-col items-start md:items-end gap-2">
-              <CandidateStatusBadge status={candidate.status} className="text-sm px-3 py-1" />
-              <span className="text-xs text-gray-500">
-                Candidato #{candidate.sequenceId || '---'}
-              </span>
+              <CandidateStatusBadge status={candidate.status} />
             </div>
           </div>
         </div>
@@ -152,7 +160,7 @@ export function CandidateDetail({ id }: Props) {
         <div className="p-6 border-b border-gray-200">
           <h3 className="font-semibold text-gray-800 mb-4 text-lg">Pipeline do Candidato</h3>
           <div className="mb-6 overflow-x-auto">
-            <CandidateTimeline status={candidate.status} />
+            <CandidateTimeline status={candidate.status as CandidateStatus} />
           </div>
           
           <div className="mt-6">
@@ -220,7 +228,7 @@ export function CandidateDetail({ id }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {candidate.interviews.map((interview) => (
+                  {candidate.interviews?.map((interview) => (
                     <tr key={interview.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
                       <td className="p-3 text-gray-900">
                         <div className="font-medium">

@@ -14,7 +14,7 @@ const navLinks = [
 export function Topbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const userName = user?.name || user?.email?.split("@")[0] || "Usuário";
+  const userName = user?.email?.split("@")[0] || "Usuário";
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (

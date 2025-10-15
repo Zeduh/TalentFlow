@@ -17,7 +17,6 @@ export function useCandidateDetail(id?: string) {
   const { user } = useAuth();
   return useQuery<Candidate>({
     queryKey: ["candidate-detail", id],
-    enabled: !!id,
     queryFn: async () => {
       const res = await api.get(`/candidates/${id}`);
       return res.data;
