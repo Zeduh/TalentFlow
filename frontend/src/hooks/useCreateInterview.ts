@@ -14,11 +14,12 @@ export function useCreateInterview() {
   return useMutation({
     mutationFn: async (data: CreateInterviewInput) => {
       const res = await api.post<Interview>("/interviews", data);
-      return res.data;
+      return { ...res.data, candidateId: data.candidateId };
     },
-    onSuccess: () => {
+    onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] }); // <-- ADICIONE ESTA LINHA
+      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+      queryClient.invalidateQueries({ queryKey: ["candidate-detail", variables.candidateId] });
     },
   });
 }

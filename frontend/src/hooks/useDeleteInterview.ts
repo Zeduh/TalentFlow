@@ -5,12 +5,19 @@ export function useDeleteInterview() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, candidateId }: { id: string, candidateId?: string }) => {
       await api.delete(`/interviews/${id}`);
+      return { id, candidateId };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["interviews"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-metrics"] });
+      
+      // Invalidar o detalhe do candidato quando uma entrevista é excluída
+      if (data.candidateId) {
+        queryClient.invalidateQueries({ 
+          queryKey: ["candidate-detail", data.candidateId] 
+        });
+      }
     },
   });
 }
