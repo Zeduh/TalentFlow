@@ -22,6 +22,7 @@ Sistema full-stack multi-tenant para gerenciamento de pipeline de recrutamento e
 - **React Query (TanStack Query)** - Gerenciamento de estado servidor
 - **Axios** - Cliente HTTP com interceptors
 - **React Hook Form** - Gerenciamento de formulários
+- **Jest + React Testing Library** - Testes unitários e de componentes
 
 ### Infraestrutura
 - **Docker & Docker Compose** - Containerização
@@ -246,6 +247,8 @@ npm run test:e2e
 npm run test:cov
 ```
 
+**Importante:** Os testes do backend utilizam configuração Babel específica. Certifique-se de que `NODE_ENV=test` está definido ao executar os testes.
+
 ### Frontend
 
 ```bash
@@ -257,6 +260,47 @@ npm run test
 # Testes com watch mode
 npm run test:watch
 ```
+
+**Configuração de Testes Frontend:**
+- O frontend usa `.babelrc` condicional que só ativa para `NODE_ENV=test`
+- Isso permite que o Next.js use SWC (mais rápido) em desenvolvimento
+- E Babel apenas durante os testes com Jest
+
+## 🗄️ Banco de Dados
+
+### Migrations
+
+O projeto usa TypeORM migrations para gerenciar o schema do banco de dados.
+
+#### Executar migrations
+
+```bash
+cd backend
+
+# Executar todas as migrations pendentes
+npm run migration:run
+
+# Ver status das migrations
+npm run migration:show
+
+# Reverter última migration
+npm run migration:revert
+```
+
+#### Criar novas migrations
+
+```bash
+# Gerar migration automaticamente baseada nas mudanças das entities
+npm run migration:generate -- src/database/migrations/NomeDaMudanca
+
+# Criar migration vazia para customizar manualmente
+npm run migration:create -- src/database/migrations/NomeDaMigration
+```
+
+#### Importante
+- **`synchronize: false`** está configurado para produção
+- Migrations são executadas automaticamente ao iniciar a aplicação (`migrationsRun: true`)
+- Sempre revise as migrations geradas antes de executar em produção
 
 ## 🔐 Segurança
 
