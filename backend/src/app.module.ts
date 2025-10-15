@@ -17,6 +17,7 @@ import { JobModule } from './modules/jobs/job.module';
 import { CandidateModule } from './modules/candidates/candidate.module';
 import { InterviewModule } from './modules/interviews/interview.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
     CandidateModule,
     InterviewModule,
     WebhooksModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

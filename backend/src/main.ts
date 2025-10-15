@@ -1,65 +1,28 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { WinstonModule } from 'nest-winston';
 import { AppModule } from './app.module';
-import { loggerConfig } from './config/logger.config';
-import * as express from 'express';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor';
-import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    logger: WinstonModule.createLogger(loggerConfig),
-  });
-
+  const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
+  const logger = new Logger('Bootstrap');
 
-  // Global exception filter
-  app.useGlobalFilters(new HttpExceptionFilter());
+  app.use(cookieParser());
 
-  // Global request ID interceptor
-  app.useGlobalInterceptors(new RequestIdInterceptor());
-
-  // Global metrics interceptor
-  app.useGlobalInterceptors(new MetricsInterceptor());
-
-  // CORS
   app.enableCors({
     origin: configService.get<string>('FRONTEND_URL', 'http://localhost:3000'),
     credentials: true,
   });
 
-  // Global prefix com exclusão do health check e versioning
-  const apiPrefix = configService.get<string>('app.apiPrefix', 'api/v1');
-  app.setGlobalPrefix(apiPrefix, {
-    exclude: ['health'],
-  });
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.setGlobalPrefix('api/v1');
 
-  // Global pipes
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
-
-  // Increase payload limit for file uploads (if needed later)
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-  // Swagger Documentation
   const config = new DocumentBuilder()
     .setTitle('TalentFlow API')
-    .setDescription(
-      'API para gerenciamento de pipeline de candidatos e agendamento de entrevistas',
-    )
+    .setDescription('API para gestão de recrutamento multi-tenant')
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -72,31 +35,23 @@ async function bootstrap() {
       },
       'JWT-auth',
     )
-    .addTag('Auth', 'Autenticação e autorização')
-    .addTag('Tenants', 'Gerenciamento de organizações')
-    .addTag('Users', 'Gerenciamento de usuários')
-    .addTag('Jobs', 'Vagas de emprego')
-    .addTag('Candidates', 'Candidatos')
-    .addTag('Interviews', 'Entrevistas')
-    .addTag('Webhooks', 'Webhooks de calendário')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-    },
-  });
+  SwaggerModule.setup('docs', app, document);
 
-  const port = configService.get<number>('app.port', 3001);
-  await app.listen(port);
+  const port = configService.get<number>('PORT', 3001);
 
-  console.log(`
-    🚀 Application is running on: http://localhost:${port}
-    📚 Swagger documentation: http://localhost:${port}/docs
-    🔧 Environment: ${configService.get<string>('app.nodeEnv', 'development')}
-    ❤️  Health check: http://localhost:${port}/health
-  `);
+  try {
+    await app.listen(port);
+    logger.log(`🚀 Aplicação rodando na porta ${port}`);
+    logger.log(`📚 Swagger: http://localhost:${port}/docs`);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Erro desconhecido';
+    logger.error(`❌ Erro ao iniciar aplicação: ${errorMessage}`);
+    process.exit(1);
+  }
 }
 
 void bootstrap();

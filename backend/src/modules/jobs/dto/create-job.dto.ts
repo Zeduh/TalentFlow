@@ -21,7 +21,8 @@ export class CreateJobDto {
 
   @ApiProperty({
     example: 'uuid-da-organizacao',
-    description: 'UUID da organização',
+    description:
+      'UUID da organização. Obrigatório para admin. Ignorado para recruiter (será preenchido automaticamente).',
   })
   @IsUUID()
   organizationId: string;

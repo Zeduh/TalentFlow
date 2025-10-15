@@ -27,32 +27,45 @@ export class JobService {
     return this.jobRepository.save(job);
   }
 
-  async findAll(filter: FilterJobDto, organizationId: string) {
+  async findAll(filter: FilterJobDto, organizationId?: string) {
     this.logger.log(`Listando vagas: ${JSON.stringify(filter)}`);
-    const limit = filter.limit ?? 10;
+    const limit = filter.limit ?? 100;
 
-    const where: FindOptionsWhere<Job> = {
-      organizationId,
-    };
+    const where: FindOptionsWhere<Job> = {};
+    if (organizationId) {
+      where.organizationId = organizationId;
+    }
     if (filter.status) where.status = filter.status;
 
     let query = this.jobRepository.createQueryBuilder('job').where(where);
 
     if (filter.cursor) {
-      query = query.andWhere('job.id > :cursor', { cursor: filter.cursor });
+      // Use sequenceId para cursor (muito mais simples e confiável)
+      const cursorId = parseInt(filter.cursor, 10);
+      query = query.andWhere('job.sequenceId > :cursor', { cursor: cursorId });
     }
 
-    query = query.orderBy('job.id', 'ASC').limit(limit);
+    query = query.orderBy('job.sequenceId', 'ASC'); // Ordena por sequenceId
+
+    if (limit) {
+      query = query.limit(limit + 1);
+    }
 
     const jobs = await query.getMany();
 
-    // Novo cursor para próxima página
-    const nextCursor = jobs.length > 0 ? jobs[jobs.length - 1].id : null;
+    let nextCursor: string | null = null;
+    let hasMore = false;
+
+    if (limit && jobs.length > limit) {
+      hasMore = true;
+      nextCursor = String(jobs[limit - 1].sequenceId); // Cursor é o sequenceId
+      jobs.splice(limit);
+    }
 
     return {
       data: jobs,
       nextCursor,
-      hasMore: jobs.length === limit,
+      hasMore,
     };
   }
 
@@ -68,15 +81,33 @@ export class JobService {
   async update(id: string, data: UpdateJobDto) {
     this.logger.log(`Atualizando vaga ${id}: ${JSON.stringify(data)}`);
 
-    if (data.organizationId)
-      await assertEntityExists(
-        this.tenantService,
-        data.organizationId,
-        'Tenant',
-      );
+    try {
+      if (data.organizationId) {
+        this.logger.log(
+          `Verificando existência do tenant: ${data.organizationId}`,
+        );
+        await assertEntityExists(
+          this.tenantService,
+          data.organizationId,
+          'Tenant',
+        );
+      }
 
-    await this.jobRepository.update(id, data);
-    return this.findById(id);
+      this.logger.log(
+        `Atualizando no banco: id=${id}, data=${JSON.stringify(data)}`,
+      );
+      await this.jobRepository.update(id, data);
+
+      this.logger.log(`Buscando vaga atualizada id=${id}`);
+      return this.findById(id);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Erro desconhecido';
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Erro ao atualizar vaga ${id}: ${message}`, stack);
+      throw error;
+    }
   }
 
   async remove(id: string) {

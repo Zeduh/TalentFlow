@@ -1,13 +1,17 @@
-import React from "react";
+'use client';
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+import { Topbar } from "@/components/Topbar";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <section>
-      {children}
-    </section>
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Topbar />
+        <main className="flex-1 px-4 md:px-8 py-8">
+          {children}
+        </main>
+      </div>
+    </ProtectedRoute>
   );
 }

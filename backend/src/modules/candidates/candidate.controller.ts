@@ -4,23 +4,16 @@ import {
   Post,
   Put,
   Delete,
-  Param,
   Body,
+  Param,
   Query,
   UseGuards,
   Req,
+  ForbiddenException,
   Logger,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { Request } from 'express';
-import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
-  ApiResponse,
-  ApiQuery,
-  ApiBody,
-} from '@nestjs/swagger';
 import { CandidateService } from './candidate.service';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { UpdateCandidateDto } from './dto/update-candidate.dto';
@@ -29,12 +22,28 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/user.entity';
-import { CandidateStatus } from './candidate.entity';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse,
+  ApiQuery,
+} from '@nestjs/swagger';
 
-@ApiTags('Candidates')
+// Interface para tipar o request com usuário autenticado
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+    email: string;
+    role: UserRole;
+    organizationId: string;
+  };
+}
+
+@ApiTags('candidates')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('candidates')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class CandidateController {
   private readonly logger = new Logger(CandidateController.name);
 
@@ -42,107 +51,149 @@ export class CandidateController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.RECRUITER)
-  @ApiOperation({ summary: 'Criar candidato' })
-  @ApiBody({ type: CreateCandidateDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Candidato criado com sucesso',
-    type: CreateCandidateDto,
-  })
+  @ApiOperation({ summary: 'Criar novo candidato' })
+  @ApiResponse({ status: 201, description: 'Candidato criado com sucesso' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  @ApiResponse({ status: 403, description: 'Sem permissão' })
   async create(
-    @Body() dto: CreateCandidateDto,
-    @Req() req: Request & { user: { email: string; organizationId: string } },
+    @Body() createCandidateDto: CreateCandidateDto,
+    @Req() req: AuthenticatedRequest,
   ) {
     this.logger.log(
-      `POST /candidates - user: ${req.user.email} - payload: ${JSON.stringify(dto)}`,
+      `[POST /candidates] User: ${req.user.email}, Role: ${req.user.role}, Org: ${req.user.organizationId}`,
     );
-    return this.candidateService.create({
-      ...dto,
-      organizationId: req.user.organizationId,
-    });
+
+    // Nota: a validação de organizationId é feita no service via jobId
+    return this.candidateService.create(createCandidateDto);
   }
 
   @Get()
-  @ApiOperation({
-    summary: 'Listar candidatos com filtros e paginação cursor-based',
-  })
+  @Roles(UserRole.ADMIN, UserRole.RECRUITER, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Listar candidatos com filtros e paginação' })
   @ApiQuery({
     name: 'status',
     required: false,
-    enum: Object.values(CandidateStatus),
+    enum: [
+      'applied',
+      'screening',
+      'interview_scheduled',
+      'offer',
+      'hired',
+      'rejected',
+    ],
   })
   @ApiQuery({ name: 'jobId', required: false, type: String })
-  @ApiQuery({ name: 'cursor', required: false, type: String })
+  @ApiQuery({ name: 'sequenceId', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
-  @ApiResponse({
-    status: 200,
-    description: 'Lista paginada de candidatos',
-    schema: {
-      example: {
-        data: [
-          {
-            id: 'uuid',
-            name: 'João Silva',
-            email: 'joao@email.com',
-            status: 'applied',
-            jobId: 'uuid',
-            organizationId: 'uuid',
-          },
-        ],
-        nextCursor: 'uuid',
-        hasMore: true,
-      },
-    },
+  @ApiQuery({
+    name: 'organizationId',
+    required: false,
+    description: 'Somente admin pode usar',
   })
+  @ApiResponse({ status: 200, description: 'Lista de candidatos' })
   async findAll(
-    @Query() filter: FilterCandidateDto,
-    @Req() req: Request & { user: { email: string; organizationId: string } },
+    @Query() filter: FilterCandidateDto & { organizationId?: string },
+    @Req() req: AuthenticatedRequest,
   ) {
     this.logger.log(
-      `GET /candidates - user: ${req.user.email} - filter: ${JSON.stringify(filter)}`,
+      `[GET /candidates] User: ${req.user.email}, Role: ${req.user.role}, Filters: ${JSON.stringify(filter)}`,
     );
+
+    // Multi-tenant: Admin pode filtrar por organizationId, outros veem só a deles
+    if (req.user.role === UserRole.ADMIN && filter.organizationId) {
+      return this.candidateService.findAll(filter, filter.organizationId);
+    }
+
     return this.candidateService.findAll(filter, req.user.organizationId);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Detalhar candidato' })
-  @ApiResponse({
-    status: 200,
-    description: 'Detalhes do candidato',
-    type: CreateCandidateDto,
-  })
-  async findById(@Param('id') id: string) {
-    this.logger.log(`GET /candidates/${id}`);
-    return this.candidateService.findById(id);
+  @Roles(UserRole.ADMIN, UserRole.RECRUITER, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Buscar candidato por ID' })
+  @ApiResponse({ status: 200, description: 'Candidato encontrado' })
+  @ApiResponse({ status: 404, description: 'Candidato não encontrado' })
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    this.logger.log(`[GET /candidates/${id}] User: ${req.user.email}`);
+
+    const candidate = await this.candidateService.findById(id);
+
+    // Multi-tenant: Admin vê tudo, outros só da sua org
+    if (
+      req.user.role !== UserRole.ADMIN &&
+      candidate.organizationId !== req.user.organizationId
+    ) {
+      this.logger.warn(
+        `[GET /candidates/${id}] FORBIDDEN: User tentou acessar candidato de outra org`,
+      );
+      throw new ForbiddenException(
+        'Você não pode acessar candidatos de outra organização',
+      );
+    }
+
+    return candidate;
   }
 
   @Put(':id')
   @Roles(UserRole.ADMIN, UserRole.RECRUITER)
   @ApiOperation({ summary: 'Atualizar candidato' })
-  @ApiBody({ type: UpdateCandidateDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Candidato atualizado',
-    type: UpdateCandidateDto,
-  })
+  @ApiResponse({ status: 200, description: 'Candidato atualizado' })
+  @ApiResponse({ status: 404, description: 'Candidato não encontrado' })
+  @ApiResponse({ status: 403, description: 'Sem permissão' })
   async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateCandidateDto,
-    @Req() req: Request & { user: { organizationId: string } }
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateCandidateDto: UpdateCandidateDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    this.logger.log(`PUT /candidates/${id} - payload: ${JSON.stringify(dto)}`);
-    return this.candidateService.update(id, {
-      ...dto,
-      organizationId: req.user.organizationId,
-    });
+    this.logger.log(`[PUT /candidates/${id}] User: ${req.user.email}`);
+
+    const candidate = await this.candidateService.findById(id);
+
+    // Multi-tenant: Recruiter só edita da sua org
+    if (
+      req.user.role === UserRole.RECRUITER &&
+      candidate.organizationId !== req.user.organizationId
+    ) {
+      this.logger.warn(
+        `[PUT /candidates/${id}] FORBIDDEN: Recruiter tentou editar candidato de outra org`,
+      );
+      throw new ForbiddenException(
+        'Você só pode editar candidatos da sua organização',
+      );
+    }
+
+    return this.candidateService.update(id, updateCandidateDto);
   }
 
   @Delete(':id')
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Remover candidato' })
-  @ApiResponse({ status: 200, description: 'Candidato removido' })
-  async remove(@Param('id', new ParseUUIDPipe()) id: string) {
-    this.logger.log(`DELETE /candidates/${id}`);
+  @Roles(UserRole.ADMIN, UserRole.RECRUITER)
+  @ApiOperation({ summary: 'Deletar candidato' })
+  @ApiResponse({ status: 200, description: 'Candidato deletado' })
+  @ApiResponse({ status: 404, description: 'Candidato não encontrado' })
+  @ApiResponse({ status: 403, description: 'Sem permissão' })
+  async remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    this.logger.log(`[DELETE /candidates/${id}] User: ${req.user.email}`);
+
+    const candidate = await this.candidateService.findById(id);
+
+    // Multi-tenant: Recruiter só deleta da sua org
+    if (
+      req.user.role === UserRole.RECRUITER &&
+      candidate.organizationId !== req.user.organizationId
+    ) {
+      this.logger.warn(
+        `[DELETE /candidates/${id}] FORBIDDEN: Recruiter tentou deletar candidato de outra org`,
+      );
+      throw new ForbiddenException(
+        'Você só pode deletar candidatos da sua organização',
+      );
+    }
+
     return this.candidateService.remove(id);
   }
 }

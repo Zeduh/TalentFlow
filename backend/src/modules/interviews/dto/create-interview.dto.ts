@@ -1,5 +1,5 @@
-import { IsUUID, IsDateString, IsEnum } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsUUID, IsDateString, IsEnum, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { InterviewStatus } from '../interview.entity';
 
 export class CreateInterviewDto {
@@ -25,10 +25,11 @@ export class CreateInterviewDto {
   @IsEnum(InterviewStatus)
   status: InterviewStatus;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     example: 'UUID da organização valido',
-    description: 'UUID da organização',
+    description: 'UUID da organização (opcional, será inferido pelo backend)',
   })
+  @IsOptional()
   @IsUUID()
-  organizationId: string;
+  organizationId?: string;
 }

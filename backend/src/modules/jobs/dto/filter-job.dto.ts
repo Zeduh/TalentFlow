@@ -1,19 +1,40 @@
-import { IsOptional, IsEnum, IsUUID } from 'class-validator';
+import { IsOptional, IsEnum, IsInt, Min, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { JobStatus } from '../job.entity';
 
 export class FilterJobDto {
-  @ApiPropertyOptional({ example: 'open', enum: JobStatus })
+  @ApiPropertyOptional({
+    description: 'Status da vaga',
+    enum: JobStatus,
+  })
   @IsOptional()
   @IsEnum(JobStatus)
   status?: JobStatus;
 
-  @ApiPropertyOptional({ example: '5189d949-0dd7-40f5-8c26-a4a1b3839f8f' })
+  @ApiPropertyOptional({
+    description: 'Cursor para paginação',
+    example: '123',
+  })
   @IsOptional()
-  @IsUUID()
+  @IsString()
   cursor?: string;
 
-  @ApiPropertyOptional({ example: 10 })
+  @ApiPropertyOptional({
+    description: 'Limite de resultados',
+    example: 10,
+    default: 100,
+  })
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   limit?: number;
+
+  @ApiPropertyOptional({
+    description: 'ID da organização (somente admin)',
+  })
+  @IsOptional()
+  @IsString()
+  organizationId?: string;
 }

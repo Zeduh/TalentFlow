@@ -12,6 +12,8 @@ import { UpdateInterviewDto } from './dto/update-interview.dto';
 import { FilterInterviewDto } from './dto/filter-interview.dto';
 import { assertEntityExists } from '../../common/utils/validation.util';
 import { CandidateService } from '../candidates/candidate.service';
+import { JobService } from '../jobs/job.service';
+import { TenantService } from '../tenants/tenant.service';
 
 @Injectable()
 export class InterviewService {
@@ -20,17 +22,15 @@ export class InterviewService {
   constructor(
     @InjectRepository(Interview)
     private readonly interviewRepository: Repository<Interview>,
-    private readonly candidateService: CandidateService, // Adicione aqui
+    private readonly candidateService: CandidateService,
+    private readonly jobService: JobService,
+    private readonly tenantService: TenantService,
   ) {}
 
   async create(data: CreateInterviewDto) {
     this.logger.log(`Agendando entrevista: ${JSON.stringify(data)}`);
 
-    await assertEntityExists(
-      this.candidateService,
-      data.candidateId,
-      'Candidate',
-    );
+    const candidate = await this.candidateService.findById(data.candidateId);
 
     // Converta para string primitiva antes de criar a data
     const scheduledAtDate = new Date(String(data.scheduledAt));
@@ -39,7 +39,7 @@ export class InterviewService {
       where: {
         candidateId: data.candidateId,
         scheduledAt: scheduledAtDate,
-        organizationId: data.organizationId,
+        organizationId: candidate.organizationId,
       },
     });
     if (existing) {
@@ -52,6 +52,7 @@ export class InterviewService {
     const interview = this.interviewRepository.create({
       ...data,
       scheduledAt: scheduledAtDate,
+      organizationId: candidate.organizationId, // Sempre usa do candidato
       calendarLink,
     });
     return this.interviewRepository.save(interview);
@@ -68,23 +69,40 @@ export class InterviewService {
 
     let query = this.interviewRepository
       .createQueryBuilder('interview')
+      .leftJoinAndSelect('interview.candidate', 'candidate')
+      .leftJoinAndSelect('candidate.job', 'job') // Candidate deve ter relação ManyToOne com Job
+      .leftJoinAndSelect('candidate.organization', 'organization') // Candidate deve ter relação ManyToOne com Tenant
       .where(where);
 
-    if (filter.cursor) {
-      query = query.andWhere('interview.id > :cursor', {
-        cursor: filter.cursor,
+    if (filter.sequenceId) {
+      query = query.andWhere('interview.sequenceId > :cursor', {
+        cursor: filter.sequenceId,
       });
     }
-    query = query.orderBy('interview.id', 'ASC').limit(limit);
+    query = query.orderBy('interview.sequenceId', 'ASC').limit(limit + 1);
 
     const interviews = await query.getMany();
-    const nextCursor =
-      interviews.length > 0 ? interviews[interviews.length - 1].id : null;
+
+    const data = interviews.map((interview) => ({
+      ...interview,
+      candidateName: interview.candidate?.name,
+      jobTitle: interview.candidate?.job?.title,
+      organizationName: interview.candidate?.organization?.name,
+    }));
+
+    let nextCursor: number | null = null;
+    let hasMore = false;
+
+    if (data.length > limit) {
+      hasMore = true;
+      nextCursor = data[limit - 1].sequenceId;
+      data.splice(limit);
+    }
 
     return {
-      data: interviews,
+      data,
       nextCursor,
-      hasMore: interviews.length === limit,
+      hasMore,
     };
   }
 

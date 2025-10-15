@@ -1,6 +1,4 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateCandidateDto } from './create-candidate.dto';
 
-export class UpdateCandidateDto extends PartialType(CreateCandidateDto) {
-  organizationId?: string; // Torna opcional para update
-}
+export class UpdateCandidateDto extends PartialType(CreateCandidateDto) {}
